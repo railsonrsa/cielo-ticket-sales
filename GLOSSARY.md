@@ -12,9 +12,13 @@ _Avoid_: Show, session
 Quantos ingressos de um Event ainda podem ser vendidos.
 _Avoid_: Stock, inventory, lotação
 
+**Cart**:
+A seleção de Events e quantidades que o cliente monta antes de pagar; sobrevive a crash e ao fechamento do app, e ainda não é uma cobrança.
+_Avoid_: Basket, carrinho (no código)
+
 **Purchase**:
 Uma tentativa de compra de um cliente, cobrada num único pagamento, que pode reunir vários Events.
-_Avoid_: Order (reservado para a Order da Cielo), cart, sale
+_Avoid_: Order (reservado para a Order da Cielo), sale
 
 **Purchase Item**:
 Uma linha da Purchase: um Event e a quantidade de ingressos dele.
