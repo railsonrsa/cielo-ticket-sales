@@ -25,5 +25,5 @@ O direito de entrar num Event, emitido só a partir de uma Purchase aprovada.
 _Avoid_: Ingresso (no código), voucher
 
 **Cielo Order**:
-O pedido criado no SDK da Cielo LIO para cobrar uma Purchase; conceito externo, não do nosso domínio.
+O pedido que o app da Cielo cria, a partir do nosso Deep Link, para cobrar uma Purchase; conceito externo, não do nosso domínio.
 _Avoid_: Order sozinho
