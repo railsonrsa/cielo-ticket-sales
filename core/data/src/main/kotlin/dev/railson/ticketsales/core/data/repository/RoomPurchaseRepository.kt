@@ -48,31 +48,37 @@ internal class RoomPurchaseRepository(
     override fun observeTickets(purchaseId: String): Flow<List<Ticket>> =
         purchaseDao.observeTickets(purchaseId).map { tickets -> tickets.map { it.toDomain() } }
 
-    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>) {
-        database.withTransaction {
-            val purchase = checkNotNull(purchaseDao.find(purchaseId)?.toDomain()) { "Unknown purchase $purchaseId" }
-            purchase.items.forEach { item ->
-                // Uma exceção aqui desfaz a transação inteira: nada de aprovação parcial.
-                check(purchaseDao.decrementCapacity(item.eventId, item.quantity) == 1) {
-                    "Not enough capacity in ${item.eventId} to approve $purchaseId"
-                }
-            }
-            purchaseDao.insertTickets(
-                purchase.items.flatMap { item -> List(item.quantity) { TicketEntity(newTicketId(), purchaseId, item.eventId) } },
-            )
-            purchaseDao.clearCart()
-            purchaseDao.updateOutcome(
-                id = purchaseId,
-                status = APPROVED,
-                failureReason = null,
-                orderId = cieloOrder.orderId,
-                authorizedAmountCents = cieloOrder.authorizedAmount.cents,
-                cieloCode = cieloOrder.cieloCode,
-                authCode = cieloOrder.authCode,
-                pendingRefund = extraOrderIds.isNotEmpty(),
-                extraOrderIds = extraOrderIds.toColumn(),
-            )
+    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>, late: Boolean): Boolean =
+        try {
+            database.withTransaction { approveInTransaction(purchaseId, cieloOrder, extraOrderIds, late) }
+            true
+        } catch (_: NotEnoughCapacity) {
+            false
         }
+
+    private suspend fun approveInTransaction(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>, late: Boolean) {
+        val purchase = checkNotNull(purchaseDao.find(purchaseId)?.toDomain()) { "Unknown purchase $purchaseId" }
+        purchase.items.forEach { item ->
+            // A exceção desfaz a transação inteira: nada de aprovação parcial.
+            if (purchaseDao.decrementCapacity(item.eventId, item.quantity) != 1) throw NotEnoughCapacity()
+        }
+        purchaseDao.insertTickets(
+            purchase.items.flatMap { item -> List(item.quantity) { TicketEntity(newTicketId(), purchaseId, item.eventId) } },
+        )
+        // A aprovação atrasada não mexe no Cart: ele já pode ser de outra venda.
+        if (!late) purchaseDao.clearCart()
+        purchaseDao.updateOutcome(
+            id = purchaseId,
+            status = APPROVED,
+            failureReason = null,
+            orderId = cieloOrder.orderId,
+            authorizedAmountCents = cieloOrder.authorizedAmount.cents,
+            cieloCode = cieloOrder.cieloCode,
+            authCode = cieloOrder.authCode,
+            pendingRefund = extraOrderIds.isNotEmpty(),
+            extraOrderIds = extraOrderIds.toColumn(),
+            needsAcknowledgment = late,
+        )
     }
 
     override suspend fun fail(
@@ -81,6 +87,7 @@ internal class RoomPurchaseRepository(
         cieloOrder: CieloOrder?,
         pendingRefund: Boolean,
         extraOrderIds: List<String>,
+        needsAcknowledgment: Boolean,
     ) {
         purchaseDao.updateOutcome(
             id = purchaseId,
@@ -92,10 +99,18 @@ internal class RoomPurchaseRepository(
             authCode = cieloOrder?.authCode,
             pendingRefund = pendingRefund,
             extraOrderIds = extraOrderIds.toColumn(),
+            needsAcknowledgment = needsAcknowledgment,
         )
+    }
+
+    override suspend fun acknowledge(purchaseId: String) {
+        purchaseDao.clearNeedsAcknowledgment(purchaseId)
     }
 
     override suspend fun recordInconclusiveCheck(purchaseId: String) {
         purchaseDao.incrementInconclusiveChecks(purchaseId)
     }
 }
+
+/** Falta Capacity para um item: sobe para desfazer a transação da aprovação. */
+private class NotEnoughCapacity : RuntimeException()

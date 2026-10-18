@@ -4,6 +4,7 @@ import dev.railson.ticketsales.core.domain.terminal.PaymentTerminal
 import dev.railson.ticketsales.core.domain.usecase.payment.HandlePaymentOutcomeUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.payment.fake.FakeCieloOrders
+import dev.railson.ticketsales.payment.fake.FakeLateApproval
 import dev.railson.ticketsales.payment.fake.FakePaymentTerminal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,8 @@ val fakePaymentModule = module {
         FakePaymentTerminal(androidContext(), get(), lazy { get<ReconcilePurchaseUseCase>() }, CoroutineScope(SupervisorJob() + Dispatchers.Default))
     }
     factoryOf(::HandlePaymentOutcomeUseCase)
+    // Single: o atraso tem que sobreviver ao fim da FakePaymentActivity.
+    single { FakeLateApproval(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
     // Single: a busca da Reconciliation vive em memória e é a mesma para as telas e para a maquininha.
     single { ReconcilePurchaseUseCase(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 }

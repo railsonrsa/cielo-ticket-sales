@@ -4,9 +4,12 @@ import dev.railson.ticketsales.core.domain.usecase.cart.ChangeCartQuantityUseCas
 import dev.railson.ticketsales.core.domain.usecase.cart.ObserveCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.RemoveFromCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.AcknowledgeSoldOutUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveAwaitingPaymentUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveLateApprovalsUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveSoldOutNoticesUseCase
 import dev.railson.ticketsales.feature.checkout.presentation.cart.CartViewModel
 import dev.railson.ticketsales.feature.checkout.presentation.result.PurchaseResultViewModel
 import org.koin.core.module.dsl.factoryOf
@@ -23,6 +26,9 @@ val checkoutModule = module {
     // Single: o Mutex da trava "uma AwaitingPayment por vez" precisa ser o mesmo para todo o app.
     single { StartPurchaseUseCase(get(), get(), get()) }
     factoryOf(::AbandonPurchaseUseCase)
+    factoryOf(::ObserveLateApprovalsUseCase)
+    factoryOf(::ObserveSoldOutNoticesUseCase)
+    factoryOf(::AcknowledgeSoldOutUseCase)
     viewModelOf(::CartViewModel)
     viewModel { params -> PurchaseResultViewModel(purchaseId = params.get(), observePurchase = get()) }
 }

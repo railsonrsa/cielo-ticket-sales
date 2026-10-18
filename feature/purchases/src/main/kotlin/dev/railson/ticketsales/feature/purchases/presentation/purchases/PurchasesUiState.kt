@@ -11,6 +11,10 @@ internal data class PurchasesUiState(
     val isCheckingPayment: Boolean = false,
     /** A confirmação do "Desistir desta compra" está aberta. */
     val confirmingAbandon: Boolean = false,
+    /** Os dados do estorno de cada Purchase com Pending Refund, pelo id. */
+    val pendingRefunds: Map<String, PendingRefundDetails> = emptyMap(),
+    /** O dialog bloqueante de esgotado após o pagamento, até o "Entendi". */
+    val soldOutNotice: Purchase? = null,
 ) {
 
     /** A `AwaitingPayment` vem sempre no topo. */

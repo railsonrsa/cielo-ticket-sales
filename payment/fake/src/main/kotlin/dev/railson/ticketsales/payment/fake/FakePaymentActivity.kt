@@ -48,6 +48,7 @@ internal class FakePaymentActivity : ComponentActivity() {
 
     private val handleOutcome: HandlePaymentOutcomeUseCase by inject()
     private val cieloOrders: FakeCieloOrders by inject()
+    private val lateApproval: FakeLateApproval by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +60,7 @@ internal class FakePaymentActivity : ComponentActivity() {
                     purchaseId = purchaseId,
                     total = total,
                     onOutcome = { outcome -> deliver(outcome) },
+                    onLateApproval = { outcome -> deliverLater(outcome) },
                 )
             }
         }
@@ -70,6 +72,12 @@ internal class FakePaymentActivity : ComponentActivity() {
             handleOutcome(outcome)
             finish()
         }
+    }
+
+    /** Fecha sem resposta, como o Voltar, e a aprovação chega depois. */
+    private fun deliverLater(outcome: PaymentOutcome.Paid) {
+        lateApproval.deliverLater(outcome)
+        finish()
     }
 
     companion object {
@@ -84,7 +92,12 @@ internal class FakePaymentActivity : ComponentActivity() {
 }
 
 @Composable
-private fun FakePaymentContent(purchaseId: String, total: Money, onOutcome: (PaymentOutcome) -> Unit) {
+private fun FakePaymentContent(
+    purchaseId: String,
+    total: Money,
+    onOutcome: (PaymentOutcome) -> Unit,
+    onLateApproval: (PaymentOutcome.Paid) -> Unit,
+) {
     // Um toque só: um segundo desfecho seria um segundo callback.
     var delivered by remember { mutableStateOf(false) }
     val choose = { outcome: PaymentOutcome ->
@@ -103,6 +116,18 @@ private fun FakePaymentContent(purchaseId: String, total: Money, onOutcome: (Pay
             Text(stringResource(R.string.fake_payment_reference, purchaseId), style = MaterialTheme.typography.bodySmall)
             Button(onClick = { choose(paid(purchaseId, authorized = total)) }, enabled = !delivered, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.fake_payment_approve))
+            }
+            OutlinedButton(
+                onClick = {
+                    if (!delivered) {
+                        delivered = true
+                        onLateApproval(paid(purchaseId, authorized = total))
+                    }
+                },
+                enabled = !delivered,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.fake_payment_approve_late, FakeLateApproval.DELAY_MILLIS / 1_000))
             }
             FAILURES.forEach { (reason, label) ->
                 OutlinedButton(onClick = { choose(PaymentOutcome.Failed(reason)) }, enabled = !delivered, modifier = Modifier.fillMaxWidth()) {
@@ -147,6 +172,6 @@ private fun randomDigits() = Random.nextInt(100_000, 1_000_000).toString()
 @Composable
 private fun FakePaymentContentPreview() {
     TicketSalesTheme {
-        FakePaymentContent(purchaseId = "3f2a9c1e-0000-4000-8000-000000000000", total = Money(9_000), onOutcome = {})
+        FakePaymentContent(purchaseId = "3f2a9c1e-0000-4000-8000-000000000000", total = Money(9_000), onOutcome = {}, onLateApproval = {})
     }
 }

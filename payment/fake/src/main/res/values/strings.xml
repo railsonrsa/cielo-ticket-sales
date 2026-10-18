@@ -3,6 +3,7 @@
     <string name="fake_payment_title">Maquininha simulada</string>
     <string name="fake_payment_reference">Referência %s</string>
     <string name="fake_payment_approve">Aprovar</string>
+    <string name="fake_payment_approve_late">Aprovar com atraso (%d s): fecha sem resposta</string>
     <string name="fake_payment_cancel">Cancelar na maquininha (1)</string>
     <string name="fake_payment_error">Erro genérico (2)</string>
     <string name="fake_payment_declined">Negado (3)</string>

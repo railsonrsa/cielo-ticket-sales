@@ -10,11 +10,14 @@ import dev.railson.ticketsales.core.domain.usecase.cart.ChangeCartQuantityUseCas
 import dev.railson.ticketsales.core.domain.usecase.cart.ObserveCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.RemoveFromCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.AcknowledgeSoldOutUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseResult
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveAwaitingPaymentUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveLateApprovalsUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveSoldOutNoticesUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +34,7 @@ import kotlinx.coroutines.launch
 /**
  * O desfecho do pagamento chega pelo banco, nunca pelo callback: o ViewModel guarda só o id da Purchase que
  * disparou (no [SavedStateHandle], para sobreviver à recriação) e reage quando ela sai de `AwaitingPayment`.
+ * Os desfechos fora de hora (aprovação atrasada, esgotado após o pagamento) também chegam pelo banco.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class CartViewModel(
@@ -42,6 +46,9 @@ internal class CartViewModel(
     observePurchase: ObservePurchaseUseCase,
     private val reconcilePurchase: ReconcilePurchaseUseCase,
     private val abandonPurchase: AbandonPurchaseUseCase,
+    observeLateApprovals: ObserveLateApprovalsUseCase,
+    observeSoldOutNotices: ObserveSoldOutNoticesUseCase,
+    private val acknowledgeSoldOut: AcknowledgeSoldOutUseCase,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -58,28 +65,44 @@ internal class CartViewModel(
 
     private val confirmingAbandon = savedStateHandle.getStateFlow(CONFIRMING_ABANDON, false)
 
+    /** O "Pagar" esbarrou em aprovações atrasadas: o dialog fica aberto até "Revisar carrinho" ou "Continuar e pagar". */
+    private val reviewingLateApprovals = savedStateHandle.getStateFlow(REVIEWING_LATE_APPROVALS, false)
+
     private val screenFlags: Flow<ScreenFlags> =
-        combine(terminalUnavailable, confirmingAbandon, reconcilePurchase.isRunning, ::ScreenFlags)
+        combine(terminalUnavailable, confirmingAbandon, reviewingLateApprovals, reconcilePurchase.isRunning, ::ScreenFlags)
+
+    private val lateOutcomes: Flow<LateOutcomes> = combine(observeLateApprovals(), observeSoldOutNotices(), ::LateOutcomes)
 
     val uiState: StateFlow<CartUiState> =
-        combine(observeCart(), awaitingPayment, trackedPurchase, screenFlags) { cart, awaiting, tracked, flags ->
+        combine(observeCart(), awaitingPayment, trackedPurchase, lateOutcomes, screenFlags) { cart, awaiting, tracked, late, flags ->
             val canAbandon = awaiting?.canBeAbandoned == true && !flags.checkingPayment
             val dialog = tracked?.dialog()
+                ?: late.soldOutNotices.firstOrNull()?.let(CartDialog::SoldOutAfterPayment)
                 ?: CartDialog.TerminalUnavailable.takeIf { flags.terminalUnavailable }
                 ?: CartDialog.ConfirmAbandon.takeIf { flags.confirmingAbandon && canAbandon }
+                ?: CartDialog.LateApprovalsToReview(late.approvals).takeIf { flags.reviewingLateApprovals && late.approvals.isNotEmpty() }
             CartUiState(
                 isLoading = false,
                 cart = cart,
                 awaitingPayment = awaiting != null,
                 isCheckingPayment = awaiting != null && flags.checkingPayment,
                 canAbandon = canAbandon,
+                hasLateApprovals = late.approvals.isNotEmpty(),
                 dialog = dialog,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CartUiState())
 
     init {
         viewModelScope.launch {
-            trackedPurchase.collect { purchase -> purchase?.oneOffEffect()?.let { sendAndStopTracking(it) } }
+            trackedPurchase.collect { purchase ->
+                val effect = purchase?.oneOffEffect()
+                when {
+                    effect != null -> sendAndStopTracking(effect)
+                    // Falhou sem dialog (Reconciliation sem cobrança, desistência): uma aprovação que chegue depois é
+                    // atrasada, e aparece pelo aviso e pelo dialog do próximo "Pagar", não como esta venda aprovada.
+                    purchase?.status is PurchaseStatus.Failed && purchase.dialog() == null -> stopTracking()
+                }
+            }
         }
     }
 
@@ -93,10 +116,12 @@ internal class CartViewModel(
                     stopTracking()
                     pay()
                 }
+                // Também é o "Revisar carrinho": o aceite não é gravado, e o próximo "Pagar" pergunta de novo.
                 CartAction.DismissDialog -> {
                     stopTracking()
                     savedStateHandle[TERMINAL_UNAVAILABLE] = false
                     savedStateHandle[CONFIRMING_ABANDON] = false
+                    savedStateHandle[REVIEWING_LATE_APPROVALS] = false
                 }
                 // O desfecho chega pelo banco: o banner some ou ganha o aviso de verificação inconclusiva.
                 CartAction.CheckPayment -> reconcilePurchase()
@@ -105,13 +130,20 @@ internal class CartViewModel(
                     savedStateHandle[CONFIRMING_ABANDON] = false
                     awaitingPayment.first()?.let { abandonPurchase(it.id) }
                 }
+                is CartAction.ContinueAndPay -> pay(acceptedLateApprovals = action.lateApprovalIds)
+                is CartAction.AcknowledgeSoldOut -> {
+                    stopTracking()
+                    acknowledgeSoldOut(action.purchaseId)
+                }
             }
         }
     }
 
-    private suspend fun pay() {
+    private suspend fun pay(acceptedLateApprovals: Set<String> = emptySet()) {
+        val result = startPurchase(acceptedLateApprovals)
+        savedStateHandle[REVIEWING_LATE_APPROVALS] = result is StartPurchaseResult.LateApprovalsToReview
         // Conflito de Capacity e pagamento em andamento já aparecem na tela pelo próprio estado.
-        when (val result = startPurchase()) {
+        when (result) {
             is StartPurchaseResult.Started -> savedStateHandle[TRACKED_PURCHASE_ID] = result.purchaseId
             StartPurchaseResult.TerminalUnavailable -> savedStateHandle[TERMINAL_UNAVAILABLE] = true
             else -> Unit
@@ -128,7 +160,7 @@ internal class CartViewModel(
     }
 
     private fun Purchase.oneOffEffect(): CartEffect? = when (status) {
-        PurchaseStatus.Approved -> CartEffect.PurchaseApproved(id)
+        PurchaseStatus.Approved -> CartEffect.PurchaseApproved(id).takeUnless { isLateApprovalToAccept }
         PurchaseStatus.Failed(FailureReason.CanceledByOperator) -> CartEffect.PaymentCanceled
         else -> null
     }
@@ -148,7 +180,15 @@ internal class CartViewModel(
         const val TRACKED_PURCHASE_ID = "tracked_purchase_id"
         const val TERMINAL_UNAVAILABLE = "terminal_unavailable"
         const val CONFIRMING_ABANDON = "confirming_abandon"
+        const val REVIEWING_LATE_APPROVALS = "reviewing_late_approvals"
     }
 }
 
-private data class ScreenFlags(val terminalUnavailable: Boolean, val confirmingAbandon: Boolean, val checkingPayment: Boolean)
+private data class ScreenFlags(
+    val terminalUnavailable: Boolean,
+    val confirmingAbandon: Boolean,
+    val reviewingLateApprovals: Boolean,
+    val checkingPayment: Boolean,
+)
+
+private data class LateOutcomes(val approvals: List<Purchase>, val soldOutNotices: List<Purchase>)

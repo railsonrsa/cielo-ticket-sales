@@ -49,7 +49,8 @@ internal interface PurchaseDao {
     @Query(
         "UPDATE purchase SET status = :status, failure_reason = :failureReason, order_id = :orderId, " +
             "authorized_amount_cents = :authorizedAmountCents, cielo_code = :cieloCode, auth_code = :authCode, " +
-            "pending_refund = :pendingRefund, extra_order_ids = :extraOrderIds WHERE id = :id",
+            "pending_refund = :pendingRefund, extra_order_ids = :extraOrderIds, needs_acknowledgment = :needsAcknowledgment " +
+            "WHERE id = :id",
     )
     suspend fun updateOutcome(
         id: String,
@@ -61,7 +62,11 @@ internal interface PurchaseDao {
         authCode: String?,
         pendingRefund: Boolean,
         extraOrderIds: String,
+        needsAcknowledgment: Boolean,
     )
+
+    @Query("UPDATE purchase SET needs_acknowledgment = 0 WHERE id = :id")
+    suspend fun clearNeedsAcknowledgment(id: String)
 
     @Query("UPDATE purchase SET inconclusive_checks = inconclusive_checks + 1 WHERE id = :id")
     suspend fun incrementInconclusiveChecks(id: String)

@@ -11,10 +11,8 @@ import dev.railson.ticketsales.core.domain.model.Purchase
 import dev.railson.ticketsales.core.domain.model.PurchaseItem
 import dev.railson.ticketsales.core.domain.model.PurchaseStatus
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,21 +62,58 @@ class RoomPurchaseRepositoryTest {
     }
 
     @Test
-    fun `an approval that does not fit the capacity changes nothing`() = runTest {
+    fun `an approval that does not fit the capacity changes nothing and never takes it below zero`() = runTest {
         val (show, play) = seededEvents()
         cartRepository.setQuantity(show.id, 2)
         cartRepository.setQuantity(play.id, 1)
         repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 2, Money(4_000)), PurchaseItem(play.id, play.name, 1, Money(2_500))))
         database.openHelper.writableDatabase.execSQL("UPDATE event SET capacity = 0 WHERE id = ?", arrayOf(play.id))
 
-        assertThrows(IllegalStateException::class.java) {
-            runBlocking { repository.approve(PURCHASE_ID, CIELO_ORDER) }
-        }
+        val approved = repository.approve(PURCHASE_ID, CIELO_ORDER)
 
+        assertThat(approved).isFalse()
         assertThat(repository.find(PURCHASE_ID)!!.status).isEqualTo(PurchaseStatus.AwaitingPayment)
         assertThat(repository.observeTickets(PURCHASE_ID).first()).isEmpty()
         assertThat(capacityOf(show.id)).isEqualTo(show.capacity)
+        assertThat(capacityOf(play.id)).isEqualTo(0)
         assertThat(cartRepository.observeQuantities().first()).containsExactly(show.id, 2, play.id, 1).inOrder()
+    }
+
+    @Test
+    fun `a late approval issues the tickets and takes the capacity but keeps the cart and waits for acceptance`() = runTest {
+        val (show, play) = seededEvents()
+        repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 2, Money(4_000))))
+        repository.fail(PURCHASE_ID, FailureReason.NotCompleted)
+        cartRepository.setQuantity(play.id, 1)
+
+        val approved = repository.approve(PURCHASE_ID, CIELO_ORDER, late = true)
+
+        assertThat(approved).isTrue()
+        val purchase = repository.find(PURCHASE_ID)!!
+        assertThat(purchase.status).isEqualTo(PurchaseStatus.Approved)
+        assertThat(purchase.needsAcknowledgment).isTrue()
+        assertThat(repository.observeTickets(PURCHASE_ID).first()).hasSize(2)
+        assertThat(capacityOf(show.id)).isEqualTo(show.capacity - 2)
+        assertThat(cartRepository.observeQuantities().first()).containsExactly(play.id, 1)
+
+        repository.acknowledge(PURCHASE_ID)
+
+        assertThat(repository.find(PURCHASE_ID)!!.needsAcknowledgment).isFalse()
+    }
+
+    @Test
+    fun `a charge sold out after payment keeps its refund flag after the operator acknowledges it`() = runTest {
+        val (show) = seededEvents()
+        repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 1, Money(4_000))))
+
+        repository.fail(PURCHASE_ID, FailureReason.SoldOutAfterPayment, CIELO_ORDER, pendingRefund = true, needsAcknowledgment = true)
+        assertThat(repository.find(PURCHASE_ID)!!.needsAcknowledgment).isTrue()
+        repository.acknowledge(PURCHASE_ID)
+
+        val refund = repository.find(PURCHASE_ID)!!
+        assertThat(refund.status).isEqualTo(PurchaseStatus.Failed(FailureReason.SoldOutAfterPayment))
+        assertThat(refund.pendingRefund).isTrue()
+        assertThat(refund.needsAcknowledgment).isFalse()
     }
 
     @Test

@@ -35,6 +35,7 @@ internal fun Purchase.toEntity() = PurchaseEntity(
     pendingRefund = pendingRefund,
     extraOrderIds = extraOrderIds.toColumn(),
     inconclusiveChecks = inconclusiveChecks,
+    needsAcknowledgment = needsAcknowledgment,
 )
 
 internal fun List<String>.toColumn(): String = joinToString(separator = ",")
@@ -72,6 +73,7 @@ internal fun PurchaseWithItems.toDomain() = Purchase(
     pendingRefund = purchase.pendingRefund,
     extraOrderIds = purchase.extraOrderIds.split(',').filter(String::isNotEmpty),
     inconclusiveChecks = purchase.inconclusiveChecks,
+    needsAcknowledgment = purchase.needsAcknowledgment,
 )
 
 internal fun TicketEntity.toDomain() = Ticket(id = id, purchaseId = purchaseId, eventId = eventId)

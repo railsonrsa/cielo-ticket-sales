@@ -109,7 +109,7 @@ class ReconcilePurchaseUseCase(
         val kept = paid.firstOrNull { it.cieloOrder.authorizedAmount == purchase.total } ?: paid.first()
         val extraOrderIds = (paid - kept).map { it.cieloOrder.orderId }
         if (kept.cieloOrder.authorizedAmount == purchase.total) {
-            purchaseRepository.approve(purchase.id, kept.cieloOrder, extraOrderIds)
+            purchaseRepository.approveOrRefund(purchase.id, kept.cieloOrder, extraOrderIds)
         } else {
             purchaseRepository.fail(purchase.id, FailureReason.AmountMismatch, kept.cieloOrder, pendingRefund = true, extraOrderIds)
         }

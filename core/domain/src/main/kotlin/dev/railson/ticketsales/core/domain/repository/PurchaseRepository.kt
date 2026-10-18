@@ -28,8 +28,16 @@ interface PurchaseRepository {
      * Aprovação atômica: estado → `Approved`, a [cieloOrder] gravada, um Ticket por unidade, a Capacity de cada
      * Event decrementada e o Cart esvaziado. Ou acontece tudo, ou nada. [extraOrderIds] (Orders pagas a mais)
      * ficam gravados com a marca Pending Refund.
+     * A aprovação [late] (`Failed` → `Approved`) não mexe no Cart e fica esperando o aceite do Operator.
+     *
+     * Devolve `false`, sem mudar nada, se faltar Capacity para algum item: a Capacity nunca fica abaixo de 0.
      */
-    suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String> = emptyList())
+    suspend fun approve(
+        purchaseId: String,
+        cieloOrder: CieloOrder,
+        extraOrderIds: List<String> = emptyList(),
+        late: Boolean = false,
+    ): Boolean
 
     suspend fun fail(
         purchaseId: String,
@@ -37,7 +45,11 @@ interface PurchaseRepository {
         cieloOrder: CieloOrder? = null,
         pendingRefund: Boolean = false,
         extraOrderIds: List<String> = emptyList(),
+        needsAcknowledgment: Boolean = false,
     )
+
+    /** O Operator reconheceu o desfecho fora de hora: a marca Pending Refund, se houver, continua. */
+    suspend fun acknowledge(purchaseId: String)
 
     /** Uma Reconciliation terminou sem resposta: a Purchase continua como está, só a contagem sobe. */
     suspend fun recordInconclusiveCheck(purchaseId: String)

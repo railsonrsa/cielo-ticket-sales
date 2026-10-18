@@ -82,6 +82,26 @@ class TicketSalesMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun `version 5 adds the acknowledgment flag and keeps the refund flag of version 4`() {
+        helper.createDatabase(DATABASE_NAME, 4).use { database ->
+            database.execSQL(
+                "INSERT INTO purchase (id, status, failure_reason, total_cents, created_at_epoch_millis, pending_refund) " +
+                    "VALUES ('p1', 'FAILED', 'AmountMismatch', 8000, 0, 1)",
+            )
+        }
+
+        val migrated = helper.runMigrationsAndValidate(DATABASE_NAME, 5, true)
+
+        migrated.query("SELECT status, pending_refund, needs_acknowledgment FROM purchase WHERE id = 'p1'").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getString(0)).isEqualTo("FAILED")
+            assertThat(cursor.getInt(1)).isEqualTo(1)
+            assertThat(cursor.getInt(2)).isEqualTo(0)
+        }
+        migrated.close()
+    }
+
     private companion object {
         const val DATABASE_NAME = "migration-test.db"
     }
