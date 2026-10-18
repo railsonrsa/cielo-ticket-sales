@@ -28,6 +28,7 @@ Origem: [Arquitetura e modularização](https://github.com/railsonrsa/cielo-tick
 ## Porta de pagamento ([ADR 0002](../adr/0002-porta-de-pagamento-so-de-disparo.md))
 
 - `PaymentTerminal.requestPayment(purchase)` e `requestOrders(page)` só disparam.
+- `PaymentTerminal.isAvailable()` é a checagem prévia do "Pagar": sem o app da Cielo, o `StartPurchaseUseCase` devolve `TerminalUnavailable` sem criar a Purchase. Não é desfecho de pagamento; a corrida com o `ActivityNotFoundException` vira `PaymentOutcome.Failed(TerminalUnavailable)` pelo use case.
 - O callback vira `PaymentOutcome` / `OrdersPage` e entra em `HandlePaymentOutcomeUseCase` / `ReconcilePurchaseUseCase`.
 - A tela observa o banco, nunca o callback.
 
@@ -45,6 +46,7 @@ Koin (não depende de GMS e nenhum requisito exige Hilt), com um teste `verify()
 
 - Version catalog + convention plugins em `build-logic` (`android-library`, `android-feature`, `jvm-library`).
 - `minSdk 24`, `compileSdk 35`, `targetSdk 29`. JDK 17.
+- **Flavors `demo`/`cielo`** (dimensão `terminal`, decidido no [#17](https://github.com/railsonrsa/cielo-ticket-sales/issues/17)): o `demo` depende só de `:payment:fake` e ganha o sufixo `.demo`; o `cielo` depende só de `:payment:cielo-lio`. Cada flavor tem o seu `paymentModule` Koin em `app/src/<flavor>`, e o `:app` só o inclui. O APK `demo` não leva o manifest da Cielo, nem o `cielo` leva a fake.
 
 ## Bibliotecas
 

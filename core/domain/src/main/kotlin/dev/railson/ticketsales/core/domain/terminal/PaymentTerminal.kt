@@ -9,5 +9,8 @@ import dev.railson.ticketsales.core.domain.model.Purchase
  */
 interface PaymentTerminal {
 
+    /** Checagem prévia, antes de criar a Purchase: o app de pagamento está instalado? Não garante o disparo. */
+    fun isAvailable(): Boolean
+
     fun requestPayment(purchase: Purchase)
 }

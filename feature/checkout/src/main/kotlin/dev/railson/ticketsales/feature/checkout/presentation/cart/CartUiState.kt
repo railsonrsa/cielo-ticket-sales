@@ -24,6 +24,9 @@ internal sealed interface CartDialog {
     /** Código 4: tentar de novo não adianta. */
     data object TerminalAuthError : CartDialog
 
+    /** O app de pagamento da Cielo não está instalado, na checagem prévia ou no disparo. */
+    data object TerminalUnavailable : CartDialog
+
     /** A Cielo autorizou um valor diferente do total: nenhum Ticket, e a cobrança precisa ser estornada. */
     data object AmountMismatch : CartDialog
 }

@@ -201,6 +201,40 @@ class CartViewModelTest {
     }
 
     @Test
+    fun `a missing payment app shows a dialog and creates no purchase`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+        terminal.available = false
+
+        viewModel.uiState.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().dialog).isEqualTo(CartDialog.TerminalUnavailable)
+
+            viewModel.onAction(CartAction.DismissDialog)
+            advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(state.dialog).isNull()
+            assertThat(state.canPay).isTrue()
+            assertThat(terminal.requested).isEmpty()
+        }
+    }
+
+    @Test
+    fun `a payment app gone between the check and the dispatch shows the same dialog`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.uiState.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            handleOutcome(PaymentOutcome.Failed(FailureReason.TerminalUnavailable))
+            advanceUntilIdle()
+
+            assertThat(expectMostRecentItem().dialog).isEqualTo(CartDialog.TerminalUnavailable)
+        }
+    }
+
+    @Test
     fun `a payment with no answer shows the banner and blocks new sales`() = runTest {
         val viewModel = cartViewModelWithOneTicket()
 

@@ -10,11 +10,12 @@ Requisitos: Android SDK e **JDK 17** (o JBR do Android Studio é Java 25 e quebr
 
 ```bash
 export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home
-./gradlew installDebug   # app
-./gradlew test lint      # testes e lint (o mesmo que a CI roda)
+./gradlew installCieloDebug   # app pagando no emulador da Cielo
+./gradlew installDemoDebug    # app com a maquininha simulada, sem emulador
+./gradlew test lint           # testes e lint (o mesmo que a CI roda)
 ```
 
-Sem o emulador, a `FakePaymentTerminal` (`:payment:fake`) demonstra o fluxo.
+O build tem dois flavors: o `cielo` paga de verdade por Deep Link (`:payment:cielo-lio`), e o `demo` usa a `FakePaymentTerminal` (`:payment:fake`), que tem um botão para cada desfecho. Os dois instalam lado a lado (o `demo` ganha o sufixo `.demo`).
 
 ## Decisões
 

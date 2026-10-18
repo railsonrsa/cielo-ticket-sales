@@ -46,9 +46,13 @@ internal class CartViewModel(
     private val trackedPurchase: Flow<Purchase?> = savedStateHandle.getStateFlow<String?>(TRACKED_PURCHASE_ID, null)
         .flatMapLatest { purchaseId -> if (purchaseId == null) flowOf(null) else observePurchase(purchaseId) }
 
+    /** A checagem prévia barrou o "Pagar": não há Purchase para observar, então o aviso fica aqui. */
+    private val terminalUnavailable = savedStateHandle.getStateFlow(TERMINAL_UNAVAILABLE, false)
+
     val uiState: StateFlow<CartUiState> =
-        combine(observeCart(), observeAwaitingPayment(), trackedPurchase) { cart, awaiting, tracked ->
-            CartUiState(isLoading = false, cart = cart, awaitingPayment = awaiting != null, dialog = tracked?.dialog())
+        combine(observeCart(), observeAwaitingPayment(), trackedPurchase, terminalUnavailable) { cart, awaiting, tracked, unavailable ->
+            val dialog = tracked?.dialog() ?: CartDialog.TerminalUnavailable.takeIf { unavailable }
+            CartUiState(isLoading = false, cart = cart, awaitingPayment = awaiting != null, dialog = dialog)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CartUiState())
 
     init {
@@ -67,15 +71,21 @@ internal class CartViewModel(
                     stopTracking()
                     pay()
                 }
-                CartAction.DismissDialog -> stopTracking()
+                CartAction.DismissDialog -> {
+                    stopTracking()
+                    savedStateHandle[TERMINAL_UNAVAILABLE] = false
+                }
             }
         }
     }
 
     private suspend fun pay() {
         // Conflito de Capacity e pagamento em andamento já aparecem na tela pelo próprio estado.
-        val result = startPurchase()
-        if (result is StartPurchaseResult.Started) savedStateHandle[TRACKED_PURCHASE_ID] = result.purchaseId
+        when (val result = startPurchase()) {
+            is StartPurchaseResult.Started -> savedStateHandle[TRACKED_PURCHASE_ID] = result.purchaseId
+            StartPurchaseResult.TerminalUnavailable -> savedStateHandle[TERMINAL_UNAVAILABLE] = true
+            else -> Unit
+        }
     }
 
     private suspend fun sendAndStopTracking(effect: CartEffect) {
@@ -97,6 +107,7 @@ internal class CartViewModel(
         is PurchaseStatus.Failed -> when (status.reason) {
             FailureReason.PaymentError, FailureReason.Declined -> CartDialog.RetryablePaymentFailure(status.reason)
             FailureReason.TerminalAuthError -> CartDialog.TerminalAuthError
+            FailureReason.TerminalUnavailable -> CartDialog.TerminalUnavailable
             FailureReason.AmountMismatch -> CartDialog.AmountMismatch
             else -> null
         }
@@ -105,5 +116,6 @@ internal class CartViewModel(
 
     private companion object {
         const val TRACKED_PURCHASE_ID = "tracked_purchase_id"
+        const val TERMINAL_UNAVAILABLE = "terminal_unavailable"
     }
 }

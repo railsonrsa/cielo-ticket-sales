@@ -72,6 +72,19 @@ class PaymentUseCasesTest {
     }
 
     @Test
+    fun `a terminal that cannot take payments creates no purchase and requests nothing`() = runTest {
+        eventRepository.setEvents(listOf(anEvent(id = "show")))
+        cartRepository.setQuantity("show", 1)
+        terminal.available = false
+
+        val result = startPurchase()
+
+        assertThat(result).isEqualTo(StartPurchaseResult.TerminalUnavailable)
+        assertThat(purchaseRepository.findAwaitingPayment()).isNull()
+        assertThat(terminal.requested).isEmpty()
+    }
+
+    @Test
     fun `items that no longer fit the capacity block paying and come back as conflicts`() = runTest {
         eventRepository.setEvents(
             listOf(anEvent(id = "show", capacity = 1), anEvent(id = "play", capacity = 10), anEvent(id = "talk", capacity = 0)),
@@ -153,6 +166,8 @@ class PaymentUseCasesTest {
             FailureReason.PaymentError,
             FailureReason.Declined,
             FailureReason.TerminalAuthError,
+            // A corrida em que o app da Cielo some entre a checagem prévia e o disparo.
+            FailureReason.TerminalUnavailable,
         )
 
         terminalFailures.forEachIndexed { index, reason ->
