@@ -11,7 +11,7 @@ Origem: [Estratégia de testes dos cenários críticos](https://github.com/rails
 | **ViewModels** (`kotlinx-coroutines-test` + Turbine) | `:feature:*` | `UiState` e efeitos |
 | **Tradução da Cielo** | `:payment:cielo-lio` | Base64 → `PaymentOutcome` (códigos 1–4, ilegível) e `lio://orders` → `OrdersPage`, com **fixtures capturadas no emulador** (inclui `paidAmount = 0` com `PAID` e cobrança duplicada) |
 | **Processo recriado** (Robolectric) | `:payment:cielo-lio` | 1 teste: abrir a `LioCallbackActivity` com intent de fixture e conferir o banco |
-| **Topo: UI Compose** | `:app` | 1 teste do caminho feliz: Cart → Pagar → aprovada → Minhas compras, com a `FakePaymentTerminal` |
+| **Topo: UI Compose** (Robolectric, flavor `demo`) | `:app` | 1 teste do caminho feliz: Cart → Pagar → aprovada → Minhas compras, com a `FakePaymentTerminal` |
 | **Grafo de DI** | `:app` | `verify()` do Koin |
 
 O emulador da Cielo fica fora da automação: é manual, em [`docs/emulador/roteiro-de-verificacao.md`](../emulador/roteiro-de-verificacao.md).
