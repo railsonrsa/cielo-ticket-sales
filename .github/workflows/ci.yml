@@ -1,7 +1,10 @@
 name: CI
 
+# Branches de fatia rodam só pelo PR (o teste local já roda antes de cada commit);
+# o push na main valida o trunk depois do merge.
 on:
   push:
+    branches: [main]
   pull_request:
 
 concurrency:
