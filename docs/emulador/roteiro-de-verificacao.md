@@ -95,16 +95,21 @@ No AVD:
 
 ## 4. Resultados
 
-Preencha à medida que for testando. Cole os JSONs longos em [Rodar o emulador Cielo e um pagamento de ponta a ponta](https://github.com/railsonrsa/cielo-ticket-sales/issues/9), como comentário.
+Rodados em 17/10/2026 no AVD `Cielo_API29` (Android 10, ARM64, sem GMS) com o emulador Cielo 1.61.8 e a sonda da branch `spike/lio-probe`.
 
 | # | Resultado | `responsecode` | Surpresas |
 |---|---|---|---|
-| C1 | | | |
-| C2 | | | |
-| C3 | | | |
-| C4 | | | |
-| C5 | | | |
-| C6 | | | |
-| C7 | | | |
-| C8 | | | |
-| C9 | | | |
+| C1 | ✅ `status: "PAID"`, `reference` volta igual, `payments[0].amount` = 5000, `paymentFields.statusCode` = `"1"` | `0` | ⚠️ **`paidAmount: 0`** mesmo com `PAID`; `statusCode` é **string**; `merchantCode` vem como a string `"null"` |
+| C2 | ✅ `{"code":1,"reason":"CANCELADO PELO USUÁRIO"}` | `0` | resposta de erro **não traz `reference` nem `orderId`** |
+| C3 | ✅ `{"code":2,"reason":"Falha no processo de pagamento"}` | **ausente** | o parâmetro `responsecode` nem vem na URI |
+| C4 | ✅ credenciais `xxxxxxxx` aceitas | — | dá para rodar o case sem conta no portal |
+| C5 | ⚠️ **cobra duas vezes**: 2 Orders `PAID`, `orderId`/`authCode`/`cieloCode` diferentes, sem aviso | `0` | a Cielo não deduplica por `reference` |
+| C6 | ✅ `items[]` volta com `sku`, `name`, `quantity`, `unitPrice`; `amount` = 19000 | `0` | — |
+| C6b | ⚠️ cobra o **`value`** (R$ 100) e ignora a soma dos itens (R$ 190); vem **`PAID`** com `pendingAmount: 0` | `0` | a Cielo não valida `value` × itens |
+| C7 | ⚠️ Voltar ◀ na tela da Cielo → **nenhum callback, nunca** | — | Purchase órfã sem nenhum crash |
+| C8 | ✅ com FGS, `am kill` **não mata** o processo; callback chega normal | `0` | — |
+| C9 | ✅ sem FGS, `am kill` mata; a Cielo dispara o callback e o Android **recria o processo** para entregá-lo | `0` | callback não se perdeu no emulador (a doc diz que o FGS é essencial; terminal real pode diferir) |
+| C11 | ✅ `lio://order` silencioso (35 ms), devolve a Order completa | `0` | — |
+| C12 | ✅ `lio://orders` silencioso (41 ms); **mais antiga primeiro**; `totalItems`/`totalPages` | `0` | cancelados/erros/abandonados **também viram Order**, com `status: "ENTERED"` e o `reference`; há uma Order-semente `id: "1"` |
+| C10, C13 | não rodados | | `value` como número funciona (todos os cenários); C13 pouco informativo |
+| C14 | ida e volta do sistema: 35 ms (consultas) a ~2,5 s (pagamento, sem contar os toques) | | |
