@@ -16,16 +16,16 @@ Um Room só, sem DataStore.
 |---|---|
 | `event` | id, nome, data/hora, local, preço (centavos), Capacity |
 | `cart_item` | Event + quantidade |
-| `purchase` | id, estado, `FailureReason`, total, data/hora, `orderId`, `cieloCode`, `authCode`, `amount`, Pending Refund (+ `orderId`s extras), contagem de verificações inconclusivas, pendência do dialog de confirmação |
+| `purchase` | id, estado, `FailureReason`, total, data/hora, `orderId`, `cieloCode`, `authCode`, `amount`, Pending Refund (+ `orderId`s extras), contagem de verificações inconclusivas, pendência do dialog de um desfecho fora de hora (`needs_acknowledgment`) |
 | `purchase_item` | Purchase, Event, quantidade, preço unitário (foto) |
 | `ticket` | id, Purchase, Event |
 
-- A aprovação atômica é um único `withTransaction`.
+- A aprovação atômica é um único `withTransaction`. Se faltar Capacity para algum item, a transação é desfeita e o repositório devolve `false`.
 - **Capacity nunca abaixo de 0**: a aprovação atrasada sem lugar não emite nada e vira `SoldOutAfterPayment` + Pending Refund ([ADR 0001](../adr/0001-anti-duplicidade-e-reconciliacao.md), item 6).
 
 ## Migrações
 
-`exportSchema = true` (esquema versionado no repo, em `core/data/schemas/`). A versão sobe a cada fatia que muda o esquema, com uma `AutoMigration` (ou uma `Migration` escrita à mão, se a automática não bastar) e um teste com `MigrationTestHelper`: v1 = `event`, v2 = `+ cart_item`, v3 = `+ purchase`, `purchase_item`, `ticket`, v4 = `+ purchase.inconclusive_checks`, `purchase.extra_order_ids`. **Proibido usar `fallbackToDestructiveMigration`**: apagaria Purchases pendentes e marcas de Pending Refund.
+`exportSchema = true` (esquema versionado no repo, em `core/data/schemas/`). A versão sobe a cada fatia que muda o esquema, com uma `AutoMigration` (ou uma `Migration` escrita à mão, se a automática não bastar) e um teste com `MigrationTestHelper`: v1 = `event`, v2 = `+ cart_item`, v3 = `+ purchase`, `purchase_item`, `ticket`, v4 = `+ purchase.inconclusive_checks`, `purchase.extra_order_ids`, v5 = `+ purchase.needs_acknowledgment`. **Proibido usar `fallbackToDestructiveMigration`**: apagaria Purchases pendentes e marcas de Pending Refund.
 
 ## Process death
 

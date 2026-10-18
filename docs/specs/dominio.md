@@ -44,7 +44,9 @@ Uma marca separada do estado. Vale para `Failed(AmountMismatch)`, `Failed(SoldOu
 - **Cart**: só esvazia na aprovação normal. Se a Purchase falhar, o Cart fica intacto. Os use cases de adicionar e de alterar a quantidade recusam passar da Capacity atual (sem gravar), e a tela espelha o limite. Um Cart Item com Capacity Conflict (`SoldOut` ou `OnlyLeft(n)`) bloqueia o "Pagar" até ser ajustado ou removido. A quantidade mínima é 1; zerar é remover.
 - **Capacity no "Pagar"**: o use case revalida, sem reservar, e devolve os Events em conflito. Nesse caso nenhuma Purchase é criada.
 - **Aprovação atômica**: uma única transação com estado → `Approved`, Tickets (1 por unidade), decremento da Capacity de cada Event, Cart esvaziado e dados da Cielo Order gravados (`orderId`, `cieloCode`, `authCode`, `amount`). Ou acontece tudo, ou nada.
-- **Aprovação atrasada** (`Failed` → `Approved`): emite Tickets e decrementa a Capacity a partir dos Purchase Items, **não mexe no Cart** e grava a pendência de um dialog de confirmação ("Revisar carrinho" / "Continuar e pagar") que aparece no próximo "Pagar" até o Operator aceitar.
+- **Aprovação atrasada** (`Failed` → `Approved`): vale para uma `Failed` **sem Pending Refund**, qualquer que seja o motivo. Emite Tickets e decrementa a Capacity a partir dos Purchase Items, **não mexe no Cart** e grava a pendência de um dialog de confirmação ("Revisar carrinho" / "Continuar e pagar") que aparece no próximo "Pagar" até o Operator aceitar. O aceite vale só para as Purchases que o dialog mostrou.
+- **Sem lugar na aprovação**, atrasada ou não: `Failed(SoldOutAfterPayment)` + Pending Refund, sem Tickets e sem mexer na Capacity. A aprovação no tempo certo também pode esbarrar nisso, se uma atrasada levou os lugares enquanto ela esperava. O dialog bloqueante fica pendente até o "Entendi".
+- **Callback pago sobre uma `Failed` com Pending Refund**: um `orderId` novo entra nos `orderId`s extras, também para estorno; um repetido não muda nada. Um valor atrasado diferente do total vira `AmountMismatch` + Pending Refund.
 - **Capacity nunca fica abaixo de 0**, e nunca há mais Tickets que lugares.
 
 ## O que o Operator vê

@@ -12,11 +12,11 @@ Origem: [Mensagens e ações do usuário para cada falha](https://github.com/rai
 | Capacity insuficiente / esgotado no Cart | — (nenhuma Purchase criada) | selo por item "Só restam N" / "Esgotado"; Pagar desabilitado; o use case revalida e devolve os Events em conflito | **Ajustar para N** · Remover |
 | App da Cielo ausente | checagem prévia: nada é criado; na corrida com `ActivityNotFoundException`: `TerminalUnavailable` | "App de pagamento da Cielo não encontrado" | OK |
 | `AwaitingPayment` órfã | — | banner no Cart e no topo de "Minhas compras": "Pagamento sem resposta"; bloqueia vendas novas | **Verificar pagamento**; se inconclusivo: "Não foi possível confirmar com a Cielo. Tente de novo em instantes" |
-| Órfã sem saída | `Abandoned` | aparece só depois de ≥1 verificação inconclusiva | **Desistir desta compra** + confirmação ("se a cobrança tiver passado, ela vai ficar marcada para estorno") |
+| Órfã sem saída | `Abandoned` | aparece só depois de ≥1 verificação inconclusiva | **Desistir desta compra** + confirmação ("se a cobrança tiver passado e a Cielo avisar depois, os ingressos são emitidos se ainda houver lugar; se não houver, a cobrança fica marcada para estorno") |
 | Callback ilegível | — (continua `AwaitingPayment`) | log + banner da órfã | Verificar pagamento |
 | Só `ENTERED` / nenhuma Order (Reconciliation) | `NotCompleted` / `NotStarted` | some da lista (sem dinheiro); Cart intacto | — |
-| Esgotado após pagamento | `SoldOutAfterPayment` + Pending Refund | dialog bloqueante: "Pagamento aprovado, mas o evento esgotou. Nenhum ingresso foi emitido. Esta cobrança precisa ser estornada." + valor, `authCode`, `cieloCode` | Entendi; selo vermelho em "Minhas compras" |
-| Cobrança duplicada / valor divergente | `Approved` + Pending Refund / `AmountMismatch` + Pending Refund | selo vermelho com os dados do estorno | — |
-| Aprovação atrasada com lugar | — (`Approved`) | alerta; no próximo "Pagar", dialog "Revisar carrinho" / "Continuar e pagar" até o Operator aceitar | — |
+| Esgotado após pagamento | `SoldOutAfterPayment` + Pending Refund | dialog bloqueante no Cart e em "Minhas compras", até o "Entendi" (o aceite fica gravado): "Pagamento aprovado, mas o evento esgotou. Nenhum ingresso foi emitido. Esta cobrança precisa ser estornada." + valor, `authCode`, `cieloCode` | Entendi; selo vermelho em "Minhas compras" |
+| Cobrança duplicada / valor divergente | `Approved` + Pending Refund / `AmountMismatch` + Pending Refund | selo vermelho com os dados do estorno (valor, `authCode`, `cieloCode` e `orderId` de cada cobrança a estornar) | — |
+| Aprovação atrasada com lugar | — (`Approved`) | aviso no Cart; no próximo "Pagar", dialog "Revisar carrinho" / "Continuar e pagar" até o Operator aceitar | "Revisar carrinho" fecha sem gravar; "Continuar e pagar" grava o aceite e paga |
 
 **Com mais tempo:** filtro "mostrar tentativas falhas" em "Minhas compras".
