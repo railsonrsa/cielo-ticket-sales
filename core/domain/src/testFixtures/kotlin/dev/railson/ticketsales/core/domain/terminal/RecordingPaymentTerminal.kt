@@ -12,6 +12,9 @@ class RecordingPaymentTerminal(private val purchaseRepository: PurchaseRepositor
 
     val requested = mutableListOf<Purchase>()
     val storedAtRequest = mutableListOf<Purchase?>()
+    var available = true
+
+    override fun isAvailable(): Boolean = available
 
     override fun requestPayment(purchase: Purchase) {
         requested += purchase

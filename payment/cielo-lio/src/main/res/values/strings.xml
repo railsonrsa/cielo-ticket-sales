@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cielo_payment_channel">Pagamento</string>
+    <string name="cielo_payment_notification_title">Pagamento em andamento</string>
+    <string name="cielo_payment_notification_text">Aguardando a resposta da maquininha Cielo</string>
+</resources>

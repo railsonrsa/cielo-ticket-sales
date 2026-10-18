@@ -10,6 +10,9 @@ sealed interface StartPurchaseResult {
 
     data object EmptyCart : StartPurchaseResult
 
+    /** O app de pagamento da Cielo não está instalado: nenhuma Purchase é criada. */
+    data object TerminalUnavailable : StartPurchaseResult
+
     /** Os Events do Cart que não cabem mais na Capacity atual. */
     data class CapacityConflicts(val eventIds: List<String>) : StartPurchaseResult
 }

@@ -133,6 +133,11 @@ private fun CartDialogs(dialog: CartDialog, onAction: (CartAction) -> Unit) {
             text = { Text(stringResource(R.string.cart_terminal_auth_error)) },
             confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_ok)) } },
         )
+        CartDialog.TerminalUnavailable -> AlertDialog(
+            onDismissRequest = dismiss,
+            text = { Text(stringResource(R.string.cart_terminal_unavailable)) },
+            confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_ok)) } },
+        )
         CartDialog.AmountMismatch -> AlertDialog(
             onDismissRequest = dismiss,
             title = { Text(stringResource(R.string.cart_amount_mismatch_title)) },

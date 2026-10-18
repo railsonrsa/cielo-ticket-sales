@@ -11,6 +11,8 @@ import dev.railson.ticketsales.core.domain.terminal.PaymentTerminal
  */
 internal class FakePaymentTerminal(private val context: Context) : PaymentTerminal {
 
+    override fun isAvailable(): Boolean = true
+
     override fun requestPayment(purchase: Purchase) {
         context.startActivity(
             FakePaymentActivity.intent(context, purchase).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),

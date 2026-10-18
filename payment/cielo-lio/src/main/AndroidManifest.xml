@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tudo o que é da Cielo mora aqui: o :app não sabe que ela existe (ADR 0002). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- A doc manda o uriappclient; no emulador quem atende o lio:// é o orderservice. -->
+    <queries>
+        <package android:name="com.ads.lio.uriappclient" />
+        <package android:name="br.com.cielosmart.orderservice" />
+    </queries>
+
+    <application>
+        <meta-data
+            android:name="cs_integration_type"
+            android:value="uri" />
+
+        <!-- Sem UI: traduz a resposta, entrega ao use case, volta para o app e se fecha. -->
+        <activity
+            android:name=".callback.LioCallbackActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="response"
+                    android:scheme="order" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.PaymentDispatchService"
+            android:exported="false" />
+    </application>
+</manifest>

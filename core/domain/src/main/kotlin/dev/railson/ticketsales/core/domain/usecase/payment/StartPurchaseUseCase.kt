@@ -33,6 +33,7 @@ class StartPurchaseUseCase(
         // Revalida sem reservar: a Capacity só muda na aprovação.
         val conflicts = cart.items.filter { it.capacityConflict != null }.map { it.event.id }
         if (conflicts.isNotEmpty()) return@withLock StartPurchaseResult.CapacityConflicts(conflicts)
+        if (!paymentTerminal.isAvailable()) return@withLock StartPurchaseResult.TerminalUnavailable
 
         val purchase = Purchase(
             id = newPurchaseId(),

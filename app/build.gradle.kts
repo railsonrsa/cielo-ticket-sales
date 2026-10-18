@@ -12,6 +12,20 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+
+    // Qual maquininha entra no APK. Cada flavor monta o seu `paymentModule` em src/<flavor>.
+    flavorDimensions += "terminal"
+    productFlavors {
+        // A FakePaymentTerminal: demonstra o app sem o emulador da Cielo. Instala ao lado do cielo.
+        create("demo") {
+            dimension = "terminal"
+            applicationIdSuffix = ".demo"
+        }
+        // A Cielo LIO de verdade, por Deep Link.
+        create("cielo") {
+            dimension = "terminal"
+        }
+    }
 }
 
 dependencies {
@@ -21,8 +35,8 @@ dependencies {
     implementation(projects.feature.catalog)
     implementation(projects.feature.checkout)
     implementation(projects.feature.purchases)
-    // A Cielo de verdade entra no #17, que decide como o build escolhe entre as duas.
-    implementation(projects.payment.fake)
+    "demoImplementation"(projects.payment.fake)
+    "cieloImplementation"(projects.payment.cieloLio)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
