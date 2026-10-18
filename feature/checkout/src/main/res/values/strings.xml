@@ -15,4 +15,27 @@
     <string name="cart_remove">Remover</string>
     <string name="cart_total">Total</string>
     <string name="cart_pay">Pagar</string>
+    <string name="cart_payment_canceled">Pagamento cancelado</string>
+    <string name="cart_awaiting_payment_title">Pagamento sem resposta</string>
+    <string name="cart_awaiting_payment_body">A maquininha ainda não respondeu sobre a última compra. Nenhuma venda nova até lá.</string>
+    <string name="cart_payment_error_title">Erro no pagamento</string>
+    <string name="cart_payment_declined_title">Pagamento negado</string>
+    <string name="cart_payment_retry_body">Nada foi cobrado e o carrinho continua igual.</string>
+    <string name="cart_payment_retry">Tentar de novo</string>
+    <string name="cart_payment_back_to_cart">Voltar ao carrinho</string>
+    <string name="cart_terminal_auth_error">Maquininha sem autenticação na Cielo. Contate o suporte.</string>
+    <string name="cart_amount_mismatch_title">Valor divergente</string>
+    <string name="cart_amount_mismatch_body">A Cielo autorizou um valor diferente do total. Nenhum ingresso foi emitido. Esta cobrança precisa ser estornada.</string>
+    <string name="cart_ok">OK</string>
+    <string name="cart_understood">Entendi</string>
+
+    <string name="result_title">Pagamento aprovado</string>
+    <string name="result_item">%1$s × %2$d · %3$s cada</string>
+    <plurals name="result_tickets">
+        <item quantity="one">%d ingresso emitido</item>
+        <item quantity="other">%d ingressos emitidos</item>
+    </plurals>
+    <string name="result_auth_code">Autorização: %s</string>
+    <string name="result_cielo_code">Código Cielo: %s</string>
+    <string name="result_new_sale">Nova venda</string>
 </resources>

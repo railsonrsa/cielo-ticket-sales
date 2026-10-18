@@ -9,7 +9,9 @@ import androidx.navigation.compose.rememberNavController
 import dev.railson.ticketsales.feature.catalog.presentation.navigation.CatalogRoute
 import dev.railson.ticketsales.feature.catalog.presentation.navigation.catalogScreen
 import dev.railson.ticketsales.feature.checkout.presentation.navigation.CartRoute
+import dev.railson.ticketsales.feature.checkout.presentation.navigation.PurchaseResultRoute
 import dev.railson.ticketsales.feature.checkout.presentation.navigation.cartScreen
+import dev.railson.ticketsales.feature.checkout.presentation.navigation.purchaseResultScreen
 
 @Composable
 internal fun AppNavHost() {
@@ -17,7 +19,14 @@ internal fun AppNavHost() {
     Surface(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = CatalogRoute) {
             catalogScreen(onOpenCart = { navController.navigate(CartRoute) })
-            cartScreen(onBack = { navController.popBackStack() })
+            cartScreen(
+                onBack = { navController.popBackStack() },
+                onPurchaseApproved = { purchaseId ->
+                    // O Cart já foi esvaziado: o resultado substitui a tela dele.
+                    navController.navigate(PurchaseResultRoute(purchaseId)) { popUpTo(CatalogRoute) }
+                },
+            )
+            purchaseResultScreen(onNewSale = { navController.popBackStack(CatalogRoute, inclusive = false) })
         }
     }
 }

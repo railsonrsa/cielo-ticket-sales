@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fake_payment_title">Maquininha simulada</string>
+    <string name="fake_payment_reference">Referência %s</string>
+    <string name="fake_payment_approve">Aprovar</string>
+    <string name="fake_payment_cancel">Cancelar na maquininha (1)</string>
+    <string name="fake_payment_error">Erro genérico (2)</string>
+    <string name="fake_payment_declined">Negado (3)</string>
+    <string name="fake_payment_auth_error">Sem autenticação (4)</string>
+    <string name="fake_payment_amount_mismatch">Autorizar só metade (valor divergente)</string>
+    <string name="fake_payment_unreadable">Resposta ilegível</string>
+    <string name="fake_payment_back_hint">Voltar fecha sem resposta, como na Cielo: a compra fica aguardando pagamento.</string>
+</resources>

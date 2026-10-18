@@ -25,7 +25,7 @@ Um Room só, sem DataStore.
 
 ## Migrações
 
-`exportSchema = true` (esquema versionado no repo, em `core/data/schemas/`). A versão sobe a cada fatia que muda o esquema, com uma `AutoMigration` (ou uma `Migration` escrita à mão, se a automática não bastar) e um teste com `MigrationTestHelper`: v1 = `event`, v2 = `+ cart_item`. **Proibido usar `fallbackToDestructiveMigration`**: apagaria Purchases pendentes e marcas de Pending Refund.
+`exportSchema = true` (esquema versionado no repo, em `core/data/schemas/`). A versão sobe a cada fatia que muda o esquema, com uma `AutoMigration` (ou uma `Migration` escrita à mão, se a automática não bastar) e um teste com `MigrationTestHelper`: v1 = `event`, v2 = `+ cart_item`, v3 = `+ purchase`, `purchase_item`, `ticket`. **Proibido usar `fallbackToDestructiveMigration`**: apagaria Purchases pendentes e marcas de Pending Refund.
 
 ## Process death
 
