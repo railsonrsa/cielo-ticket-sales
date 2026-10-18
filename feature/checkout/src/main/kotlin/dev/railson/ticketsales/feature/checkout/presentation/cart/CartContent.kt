@@ -39,6 +39,7 @@ import dev.railson.ticketsales.core.domain.model.CartItem
 import dev.railson.ticketsales.core.domain.model.Event
 import dev.railson.ticketsales.core.domain.model.Money
 import dev.railson.ticketsales.core.ui.format.formatBrl
+import dev.railson.ticketsales.core.ui.format.formatDateTime
 import dev.railson.ticketsales.core.ui.theme.TicketSalesTheme
 import dev.railson.ticketsales.feature.checkout.R
 import dev.railson.ticketsales.feature.checkout.presentation.components.CartItemCard
@@ -70,6 +71,7 @@ internal fun CartContent(
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             if (uiState.awaitingPayment) AwaitingPaymentBanner(uiState, onAction)
+            if (uiState.hasLateApprovals) LateApprovalBanner()
             CartBody(uiState, onAction, Modifier.weight(1f).fillMaxWidth())
         }
     }
@@ -122,6 +124,17 @@ private fun AwaitingPaymentBanner(uiState: CartUiState, onAction: (CartAction) -
     }
 }
 
+/** Uma Purchase que tinha falhado foi aprovada depois: o Cart não foi esvaziado e pode repetir os ingressos dela. */
+@Composable
+private fun LateApprovalBanner() {
+    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.cart_late_approval_title), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.cart_late_approval_banner), style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
 @Composable
 private fun CartDialogs(dialog: CartDialog, onAction: (CartAction) -> Unit) {
     val dismiss = { onAction(CartAction.DismissDialog) }
@@ -162,6 +175,50 @@ private fun CartDialogs(dialog: CartDialog, onAction: (CartAction) -> Unit) {
             text = { Text(stringResource(R.string.cart_amount_mismatch_body)) },
             confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_understood)) } },
         )
+        is CartDialog.LateApprovalsToReview -> AlertDialog(
+            onDismissRequest = dismiss,
+            title = { Text(stringResource(R.string.cart_late_approval_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.cart_late_approval_body))
+                    dialog.purchases.forEach { purchase ->
+                        Text(
+                            stringResource(
+                                R.string.cart_late_approval_purchase,
+                                formatDateTime(purchase.createdAtEpochMillis),
+                                purchase.items.joinToString { "${it.eventName} × ${it.quantity}" },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(CartAction.ContinueAndPay(dialog.purchases.map { it.id }.toSet())) }) {
+                    Text(stringResource(R.string.cart_late_approval_continue))
+                }
+            },
+            dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_late_approval_review)) } },
+        )
+        is CartDialog.SoldOutAfterPayment -> {
+            val acknowledge = { onAction(CartAction.AcknowledgeSoldOut(dialog.purchase.id)) }
+            AlertDialog(
+                // Bloqueante: só o "Entendi" fecha.
+                onDismissRequest = {},
+                title = { Text(stringResource(R.string.cart_sold_out_after_payment_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.cart_sold_out_after_payment_body))
+                        dialog.purchase.cieloOrder?.let { order ->
+                            Text(stringResource(R.string.cart_refund_amount, formatBrl(order.authorizedAmount.cents)))
+                            Text(stringResource(R.string.result_auth_code, order.authCode))
+                            Text(stringResource(R.string.result_cielo_code, order.cieloCode))
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = acknowledge) { Text(stringResource(R.string.cart_understood)) } },
+            )
+        }
     }
 }
 

@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * Purchases em memória. A aprovação mexe nos fakes de Event e de Cart como a transação do Room:
- * confere a Capacity de todos os itens antes de mudar qualquer coisa.
+ * confere a Capacity de todos os itens antes de mudar qualquer coisa, e não muda nada se faltar lugar.
  */
 class FakePurchaseRepository(
     private val eventRepository: FakeEventRepository,
@@ -42,16 +42,14 @@ class FakePurchaseRepository(
     override fun observeTickets(purchaseId: String): Flow<List<Ticket>> =
         tickets.map { all -> all.filter { it.purchaseId == purchaseId } }
 
-    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>) {
+    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>, late: Boolean): Boolean {
         val purchase = purchases.value.getValue(purchaseId)
         val events = eventRepository.observeEvents().first()
         val soldByEvent = purchase.items.groupBy { it.eventId }.mapValues { (_, items) -> items.sumOf { it.quantity } }
-        check(soldByEvent.all { (eventId, sold) -> events.single { it.id == eventId }.capacity >= sold }) {
-            "Not enough capacity to approve $purchaseId"
-        }
+        if (!soldByEvent.all { (eventId, sold) -> events.single { it.id == eventId }.capacity >= sold }) return false
 
         eventRepository.setEvents(events.map { it.copy(capacity = it.capacity - (soldByEvent[it.id] ?: 0)) })
-        cartRepository.observeQuantities().first().keys.forEach { cartRepository.remove(it) }
+        if (!late) cartRepository.observeQuantities().first().keys.forEach { cartRepository.remove(it) }
         tickets.update { all ->
             all + purchase.items.flatMap { item -> List(item.quantity) { Ticket("ticket-${nextTicket++}", purchaseId, item.eventId) } }
         }
@@ -60,8 +58,10 @@ class FakePurchaseRepository(
             cieloOrder = cieloOrder,
             pendingRefund = extraOrderIds.isNotEmpty(),
             extraOrderIds = extraOrderIds,
+            needsAcknowledgment = late,
         )
         purchases.update { it + (purchaseId to approved) }
+        return true
     }
 
     override suspend fun fail(
@@ -70,6 +70,7 @@ class FakePurchaseRepository(
         cieloOrder: CieloOrder?,
         pendingRefund: Boolean,
         extraOrderIds: List<String>,
+        needsAcknowledgment: Boolean,
     ) {
         purchases.update { all ->
             val purchase = all.getValue(purchaseId)
@@ -78,9 +79,14 @@ class FakePurchaseRepository(
                 cieloOrder = cieloOrder,
                 pendingRefund = pendingRefund,
                 extraOrderIds = extraOrderIds,
+                needsAcknowledgment = needsAcknowledgment,
             )
             all + (purchaseId to failed)
         }
+    }
+
+    override suspend fun acknowledge(purchaseId: String) {
+        purchases.update { all -> all + (purchaseId to all.getValue(purchaseId).copy(needsAcknowledgment = false)) }
     }
 
     override suspend fun recordInconclusiveCheck(purchaseId: String) {

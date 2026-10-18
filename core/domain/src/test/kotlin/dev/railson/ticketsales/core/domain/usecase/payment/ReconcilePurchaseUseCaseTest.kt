@@ -145,6 +145,23 @@ class ReconcilePurchaseUseCaseTest {
     }
 
     @Test
+    fun `a paid order for an event that sold out meanwhile flags the orphan for refund`() = runTest {
+        givenOrphan()
+        eventRepository.setEvents(listOf(anEvent(id = "event-1", capacity = 0)))
+        val reconcile = newReconcile()
+
+        reconcile()
+        reconcile.answeredBy(CieloOrdersStub(listOf(anOrderFor(ORPHAN, TOTAL, orderId = "paid"))))
+
+        val purchase = orphan()
+        assertThat(purchase.status).isEqualTo(PurchaseStatus.Failed(FailureReason.SoldOutAfterPayment))
+        assertThat(purchase.cieloOrder?.orderId).isEqualTo("paid")
+        assertThat(purchase.pendingRefund).isTrue()
+        assertThat(purchase.needsAcknowledgment).isTrue()
+        assertThat(purchaseRepository.observeTickets(ORPHAN).first()).isEmpty()
+    }
+
+    @Test
     fun `a failed query leaves the orphan awaiting payment and counts the check`() = runTest {
         givenOrphan()
         val reconcile = newReconcile()

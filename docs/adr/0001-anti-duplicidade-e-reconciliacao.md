@@ -23,6 +23,8 @@ No emulador, a Cielo **cobrou duas vezes o mesmo `reference`**. Ela não tem cha
 
 _Emenda de 17/10/2026, ticket [Mensagens e ações do usuário para cada falha](https://github.com/railsonrsa/cielo-ticket-sales/issues/10): os motivos entre aspas acima viraram o tipo fechado `FailureReason` (`NotCompleted`, `NotStarted`, `AmountMismatch`, `SoldOutAfterPayment`…), e "cobrança a estornar" virou a marca **Pending Refund** (ver `GLOSSARY.md`). Os itens 7 e 8 entraram nessa emenda._
 
+_Emenda de 18/10/2026, ticket [Aprovação atrasada e Pending Refund](https://github.com/railsonrsa/cielo-ticket-sales/issues/19): a promoção do item 6 vale para qualquer `Failed` sem Pending Refund, `Abandoned` incluída. Por isso, a confirmação do "Desistir" (item 7) promete ingressos se ainda houver lugar e o estorno se não houver. A mesma regra de "sem lugar → estorno" vale para a aprovação no tempo certo que perde os lugares para uma atrasada._
+
 ## Alternativas descartadas
 
 - Confiar na ordenação de `lio://orders`: não é documentada e pode mudar no terminal real.

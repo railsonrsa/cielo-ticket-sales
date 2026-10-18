@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.railson.ticketsales.core.domain.model.FailureReason
+import dev.railson.ticketsales.core.domain.model.Money
 import dev.railson.ticketsales.core.domain.model.PurchaseStatus
 import dev.railson.ticketsales.core.domain.model.aCieloOrder
 import dev.railson.ticketsales.core.domain.model.aPurchase
@@ -11,10 +12,14 @@ import dev.railson.ticketsales.core.domain.model.anEvent
 import dev.railson.ticketsales.core.domain.repository.FakeCartRepository
 import dev.railson.ticketsales.core.domain.repository.FakeEventRepository
 import dev.railson.ticketsales.core.domain.repository.FakePurchaseRepository
+import dev.railson.ticketsales.core.domain.terminal.PaymentOutcome
 import dev.railson.ticketsales.core.domain.terminal.RecordingPaymentTerminal
 import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.AcknowledgeSoldOutUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.HandlePaymentOutcomeUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchasesUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveSoldOutNoticesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -144,12 +149,64 @@ class PurchasesViewModelTest {
         }
     }
 
+    @Test
+    fun `purchases flagged for refund carry the data to refund them, and the others carry none`() = runTest {
+        eventRepository.setEvents(listOf(anEvent(id = "event-1", capacity = 10)))
+        val paid = aCieloOrder(authorizedAmount = aPurchase(id = "any").total, orderId = "kept")
+        purchaseRepository.create(aPurchase(id = "duplicate", status = PurchaseStatus.AwaitingPayment, createdAtEpochMillis = 4_000))
+        purchaseRepository.approve("duplicate", paid, extraOrderIds = listOf("extra"))
+        val half = aCieloOrder(authorizedAmount = Money(cents = 2_500), orderId = "half")
+        purchaseRepository.create(aPurchase(id = "mismatch", status = PurchaseStatus.AwaitingPayment, createdAtEpochMillis = 3_000))
+        purchaseRepository.fail("mismatch", FailureReason.AmountMismatch, half, pendingRefund = true)
+        purchaseRepository.create(aPurchase(id = "sold-out", status = PurchaseStatus.AwaitingPayment, createdAtEpochMillis = 2_000))
+        purchaseRepository.fail("sold-out", FailureReason.SoldOutAfterPayment, paid, pendingRefund = true)
+        purchaseRepository.create(aPurchase(id = "approved", createdAtEpochMillis = 1_000))
+
+        purchasesViewModel().uiState.test {
+            skipItems(1)
+
+            val refunds = awaitItem().pendingRefunds
+            assertThat(refunds).containsExactly(
+                "duplicate", PendingRefundDetails(reason = null, refundedOrder = null, extraOrderIds = listOf("extra")),
+                "mismatch", PendingRefundDetails(FailureReason.AmountMismatch, half, extraOrderIds = emptyList()),
+                "sold-out", PendingRefundDetails(FailureReason.SoldOutAfterPayment, paid, extraOrderIds = emptyList()),
+            )
+        }
+    }
+
+    @Test
+    fun `a charge that sold out after payment shows a blocking dialog until understood, and keeps the badge`() = runTest {
+        eventRepository.setEvents(listOf(anEvent(id = "event-1", capacity = 0)))
+        purchaseRepository.create(aPurchase(id = "late", status = PurchaseStatus.Failed(FailureReason.NotCompleted)))
+        val viewModel = purchasesViewModel()
+
+        viewModel.uiState.test {
+            skipItems(1)
+            assertThat(awaitItem().soldOutNotice).isNull()
+
+            HandlePaymentOutcomeUseCase(purchaseRepository)(
+                PaymentOutcome.Paid(reference = "late", cieloOrder = aCieloOrder(authorizedAmount = aPurchase(id = "late").total)),
+            )
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().soldOutNotice?.id).isEqualTo("late")
+
+            viewModel.onAction(PurchasesAction.AcknowledgeSoldOut("late"))
+            advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(state.soldOutNotice).isNull()
+            assertThat(state.pendingRefunds.keys).containsExactly("late")
+        }
+    }
+
     private fun TestScope.purchasesViewModel(): PurchasesViewModel {
         reconcile = ReconcilePurchaseUseCase(purchaseRepository, terminal, scope = backgroundScope)
         return PurchasesViewModel(
             observePurchases = ObservePurchasesUseCase(purchaseRepository),
             reconcilePurchase = reconcile,
             abandonPurchase = AbandonPurchaseUseCase(purchaseRepository, reconcile),
+            observeSoldOutNotices = ObserveSoldOutNoticesUseCase(purchaseRepository),
+            acknowledgeSoldOut = AcknowledgeSoldOutUseCase(purchaseRepository),
             savedStateHandle = SavedStateHandle(),
         )
     }

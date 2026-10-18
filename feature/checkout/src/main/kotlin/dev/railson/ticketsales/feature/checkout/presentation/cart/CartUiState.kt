@@ -2,6 +2,7 @@ package dev.railson.ticketsales.feature.checkout.presentation.cart
 
 import dev.railson.ticketsales.core.domain.model.Cart
 import dev.railson.ticketsales.core.domain.model.FailureReason
+import dev.railson.ticketsales.core.domain.model.Purchase
 
 internal data class CartUiState(
     val isLoading: Boolean = true,
@@ -12,6 +13,8 @@ internal data class CartUiState(
     val isCheckingPayment: Boolean = false,
     /** A órfã já teve uma verificação inconclusiva: aviso de nova tentativa e o "Desistir desta compra". */
     val canAbandon: Boolean = false,
+    /** Há Purchases aprovadas fora de hora que o Operator ainda não aceitou: o Cart pode repetir os ingressos delas. */
+    val hasLateApprovals: Boolean = false,
     val dialog: CartDialog? = null,
 ) {
 
@@ -36,4 +39,10 @@ internal sealed interface CartDialog {
 
     /** A confirmação do "Desistir desta compra". */
     data object ConfirmAbandon : CartDialog
+
+    /** O "Pagar" depois de uma aprovação atrasada: "Revisar carrinho" ou "Continuar e pagar". */
+    data class LateApprovalsToReview(val purchases: List<Purchase>) : CartDialog
+
+    /** Bloqueante até o "Entendi": a Cielo cobrou, o Event esgotou e a cobrança precisa ser estornada. */
+    data class SoldOutAfterPayment(val purchase: Purchase) : CartDialog
 }

@@ -28,11 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.railson.ticketsales.core.domain.model.CieloOrder
 import dev.railson.ticketsales.core.domain.model.FailureReason
 import dev.railson.ticketsales.core.domain.model.Money
 import dev.railson.ticketsales.core.domain.model.Purchase
 import dev.railson.ticketsales.core.domain.model.PurchaseItem
 import dev.railson.ticketsales.core.domain.model.PurchaseStatus
+import dev.railson.ticketsales.core.ui.format.formatBrl
 import dev.railson.ticketsales.core.ui.theme.TicketSalesTheme
 import dev.railson.ticketsales.feature.purchases.R
 import dev.railson.ticketsales.feature.purchases.presentation.components.PurchaseRow
@@ -46,6 +48,7 @@ internal fun PurchasesContent(
     onOpenReceipt: (purchaseId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    uiState.soldOutNotice?.let { SoldOutAfterPaymentDialog(it, onAction) }
     if (uiState.confirmingAbandon) ConfirmAbandonDialog(onAction)
     Scaffold(
         modifier = modifier,
@@ -84,6 +87,7 @@ internal fun PurchasesContent(
                         PurchaseRow(
                             purchase = purchase,
                             onClick = { onOpenReceipt(purchase.id) }.takeIf { purchase.status == PurchaseStatus.Approved },
+                            pendingRefund = uiState.pendingRefunds[purchase.id],
                         )
                     }
                 }
@@ -108,6 +112,30 @@ private fun AwaitingPaymentActions(uiState: PurchasesUiState, onAction: (Purchas
             }
         }
     }
+}
+
+/** Bloqueante até o "Entendi": a Cielo cobrou, o Event esgotou e a cobrança precisa ser estornada. */
+@Composable
+private fun SoldOutAfterPaymentDialog(purchase: Purchase, onAction: (PurchasesAction) -> Unit) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.purchases_sold_out_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.purchases_sold_out_body))
+                purchase.cieloOrder?.let { order ->
+                    Text(stringResource(R.string.purchases_refund_value, formatBrl(order.authorizedAmount.cents)))
+                    Text(stringResource(R.string.purchases_auth_code, order.authCode))
+                    Text(stringResource(R.string.purchases_cielo_code, order.cieloCode))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onAction(PurchasesAction.AcknowledgeSoldOut(purchase.id)) }) {
+                Text(stringResource(R.string.purchases_understood))
+            }
+        },
+    )
 }
 
 @Composable
@@ -140,9 +168,17 @@ private fun PurchasesContentPreview() {
                         listOf(show),
                         Money(8_000),
                         1_792_000_200_000,
+                        cieloOrder = CieloOrder("9b1d-order", Money(8_000), cieloCode = "123456", authCode = "654321"),
                         pendingRefund = true,
                     ),
                     Purchase("c", PurchaseStatus.Approved, listOf(show), Money(8_000), 1_792_000_100_000),
+                ),
+                pendingRefunds = mapOf(
+                    "b" to PendingRefundDetails(
+                        FailureReason.SoldOutAfterPayment,
+                        CieloOrder("9b1d-order", Money(8_000), cieloCode = "123456", authCode = "654321"),
+                        extraOrderIds = emptyList(),
+                    ),
                 ),
             ),
             onAction = {},

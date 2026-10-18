@@ -13,4 +13,10 @@ internal sealed interface CartAction {
     data object CheckPayment : CartAction
     data object AskToAbandon : CartAction
     data object ConfirmAbandon : CartAction
+
+    /** "Continuar e pagar": aceita as aprovações atrasadas que o dialog mostrou e paga o Cart como está. */
+    data class ContinueAndPay(val lateApprovalIds: Set<String>) : CartAction
+
+    /** O "Entendi" do dialog de esgotado após o pagamento. */
+    data class AcknowledgeSoldOut(val purchaseId: String) : CartAction
 }

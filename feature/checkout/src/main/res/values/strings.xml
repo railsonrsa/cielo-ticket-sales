@@ -23,7 +23,7 @@
     <string name="cart_check_inconclusive">Não foi possível confirmar com a Cielo. Tente de novo em instantes.</string>
     <string name="cart_abandon">Desistir desta compra</string>
     <string name="cart_abandon_title">Desistir desta compra?</string>
-    <string name="cart_abandon_body">As vendas voltam a ser liberadas. Se a cobrança tiver passado, ela vai ficar marcada para estorno.</string>
+    <string name="cart_abandon_body">As vendas voltam a ser liberadas. Se a cobrança tiver passado e a Cielo avisar depois, os ingressos são emitidos se ainda houver lugar; se não houver, a cobrança fica marcada para estorno.</string>
     <string name="cart_abandon_confirm">Desistir</string>
     <string name="cart_abandon_keep_waiting">Continuar aguardando</string>
     <string name="cart_payment_error_title">Erro no pagamento</string>
@@ -35,6 +35,15 @@
     <string name="cart_terminal_unavailable">App de pagamento da Cielo não encontrado.</string>
     <string name="cart_amount_mismatch_title">Valor divergente</string>
     <string name="cart_amount_mismatch_body">A Cielo autorizou um valor diferente do total. Nenhum ingresso foi emitido. Esta cobrança precisa ser estornada.</string>
+    <string name="cart_late_approval_title">Compra aprovada depois</string>
+    <string name="cart_late_approval_banner">Uma compra que tinha falhado foi aprovada pela Cielo, e os ingressos dela já foram emitidos. Revise o carrinho antes de cobrar de novo.</string>
+    <string name="cart_late_approval_body">A Cielo aprovou depois uma compra que tinha falhado, e os ingressos já foram emitidos. O carrinho não foi esvaziado e pode repetir esses ingressos.</string>
+    <string name="cart_late_approval_purchase">%1$s: %2$s</string>
+    <string name="cart_late_approval_review">Revisar carrinho</string>
+    <string name="cart_late_approval_continue">Continuar e pagar</string>
+    <string name="cart_sold_out_after_payment_title">Evento esgotado</string>
+    <string name="cart_sold_out_after_payment_body">Pagamento aprovado, mas o evento esgotou. Nenhum ingresso foi emitido. Esta cobrança precisa ser estornada.</string>
+    <string name="cart_refund_amount">Valor: %s</string>
     <string name="cart_ok">OK</string>
     <string name="cart_understood">Entendi</string>
 

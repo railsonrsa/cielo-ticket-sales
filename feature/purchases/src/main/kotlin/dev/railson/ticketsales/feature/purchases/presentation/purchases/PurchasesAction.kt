@@ -7,4 +7,7 @@ internal sealed interface PurchasesAction {
     data object AskToAbandon : PurchasesAction
     data object ConfirmAbandon : PurchasesAction
     data object DismissDialog : PurchasesAction
+
+    /** O "Entendi" do dialog de esgotado após o pagamento. */
+    data class AcknowledgeSoldOut(val purchaseId: String) : PurchasesAction
 }

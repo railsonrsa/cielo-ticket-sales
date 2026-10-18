@@ -7,6 +7,7 @@ import dev.railson.ticketsales.core.domain.model.CapacityConflict
 import dev.railson.ticketsales.core.domain.model.FailureReason
 import dev.railson.ticketsales.core.domain.model.Money
 import dev.railson.ticketsales.core.domain.model.aCieloOrder
+import dev.railson.ticketsales.core.domain.model.aPurchase
 import dev.railson.ticketsales.core.domain.model.anEvent
 import dev.railson.ticketsales.core.domain.repository.FakeCartRepository
 import dev.railson.ticketsales.core.domain.repository.FakeEventRepository
@@ -20,13 +21,17 @@ import dev.railson.ticketsales.core.domain.model.PurchaseStatus
 import dev.railson.ticketsales.core.domain.terminal.CieloOrdersStub
 import dev.railson.ticketsales.core.domain.terminal.anOrderFor
 import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.AcknowledgeSoldOutUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.HandlePaymentOutcomeUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveAwaitingPaymentUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveLateApprovalsUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveSoldOutNoticesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -344,6 +349,88 @@ class CartViewModelTest {
         }
     }
 
+    @Test
+    fun `a late approval flags the cart and asks to review it on pay until the operator continues`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+        approvedLate("late")
+
+        viewModel.uiState.test {
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().hasLateApprovals).isTrue()
+
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            val review = expectMostRecentItem().dialog
+            assertThat(review).isEqualTo(CartDialog.LateApprovalsToReview(listOf(purchaseRepository.find("late")!!)))
+
+            // "Revisar carrinho": nada é gravado, e o próximo "Pagar" pergunta de novo.
+            viewModel.onAction(CartAction.DismissDialog)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().dialog).isNull()
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().dialog).isEqualTo(review)
+            assertThat(terminal.requested).isEmpty()
+
+            viewModel.onAction(CartAction.ContinueAndPay(lateApprovalIds = setOf("late")))
+            advanceUntilIdle()
+
+            val paying = expectMostRecentItem()
+            assertThat(paying.dialog).isNull()
+            assertThat(paying.hasLateApprovals).isFalse()
+            assertThat(paying.awaitingPayment).isTrue()
+            assertThat(terminal.requested).hasSize(1)
+        }
+    }
+
+    @Test
+    fun `the payment of this cart approved after a check gave it up stays on the cart instead of navigating`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.effects.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            val purchase = terminal.requested.single()
+            viewModel.onAction(CartAction.CheckPayment)
+            advanceUntilIdle()
+            reconcile.onOrdersPage(CieloOrdersStub(listOf(anOrderFor(purchase.id, authorized = Money(0)))).page(1))
+            advanceUntilIdle()
+
+            handleOutcome(PaymentOutcome.Paid(purchase.id, aCieloOrder(authorizedAmount = purchase.total)))
+            advanceUntilIdle()
+
+            expectNoEvents()
+            assertThat(purchaseRepository.find(purchase.id)!!.isLateApprovalToAccept).isTrue()
+        }
+    }
+
+    @Test
+    fun `a charge that sold out after payment blocks the cart with a dialog until understood`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+        purchaseRepository.create(aPurchase(id = "late", status = PurchaseStatus.Failed(FailureReason.NotCompleted)))
+        eventRepository.setEvents(listOf(anEvent(id = "event-1", capacity = 0), anEvent(id = "show", unitPrice = Money(cents = 4_000), capacity = 10)))
+        handleOutcome(PaymentOutcome.Paid(reference = "late", cieloOrder = aCieloOrder(authorizedAmount = Money(cents = 5_000))))
+
+        viewModel.uiState.test {
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().dialog).isEqualTo(CartDialog.SoldOutAfterPayment(purchaseRepository.find("late")!!))
+
+            viewModel.onAction(CartAction.AcknowledgeSoldOut("late"))
+            advanceUntilIdle()
+
+            assertThat(expectMostRecentItem().dialog).isNull()
+            assertThat(purchaseRepository.find("late")!!.pendingRefund).isTrue()
+        }
+    }
+
+    /** Uma Purchase de R$ 50 que o app deu como falha e que a Cielo aprovou depois, com lugar. */
+    private suspend fun approvedLate(purchaseId: String) {
+        val events = eventRepository.observeEvents().first()
+        eventRepository.setEvents(events + anEvent(id = "event-1", capacity = 10))
+        purchaseRepository.create(aPurchase(id = purchaseId, status = PurchaseStatus.Failed(FailureReason.NotCompleted)))
+        handleOutcome(PaymentOutcome.Paid(reference = purchaseId, cieloOrder = aCieloOrder(authorizedAmount = Money(cents = 5_000))))
+    }
+
     private suspend fun TestScope.cartViewModelWithOneTicket(): CartViewModel {
         eventRepository.setEvents(listOf(anEvent(id = "show", unitPrice = Money(cents = 4_000), capacity = 10)))
         cartRepository.setQuantity("show", 1)
@@ -361,6 +448,9 @@ class CartViewModelTest {
             observePurchase = ObservePurchaseUseCase(purchaseRepository),
             reconcilePurchase = reconcile,
             abandonPurchase = AbandonPurchaseUseCase(purchaseRepository, reconcile),
+            observeLateApprovals = ObserveLateApprovalsUseCase(purchaseRepository),
+            observeSoldOutNotices = ObserveSoldOutNoticesUseCase(purchaseRepository),
+            acknowledgeSoldOut = AcknowledgeSoldOutUseCase(purchaseRepository),
             savedStateHandle = SavedStateHandle(),
         )
     }
