@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capacity negativa ou zero?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: uma coluna estreita; controles do cenário, linha do tempo em passos, palco com os assentos e a tabela de regras */
+:root {
+  --bg: #f3f5f7; --surface: #ffffff; --ink: #18232e; --muted: #5d6b78; --line: #d8dee5;
+  --accent: #0f6b74; --accent-soft: #dcefef;
+  --ok: #2f7d4f; --ok-soft: #dff1e6; --bad: #b3362b; --bad-soft: #f8e1de; --warn: #9a6a00; --warn-soft: #f6ecd2;
+  --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11171d; --surface: #1a232c; --ink: #e6edf3; --muted: #9aa8b5; --line: #2c3945;
+  --accent: #5cc3cc; --accent-soft: #173a3e;
+  --ok: #6cc98f; --ok-soft: #173826; --bad: #f08a80; --bad-soft: #432220; --warn: #e2b24a; --warn-soft: #3d3118; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11171d; --surface: #1a232c; --ink: #e6edf3; --muted: #9aa8b5; --line: #2c3945;
+  --accent: #5cc3cc; --accent-soft: #173a3e;
+  --ok: #6cc98f; --ok-soft: #173826; --bad: #f08a80; --bad-soft: #432220; --warn: #e2b24a; --warn-soft: #3d3118; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(26px, 5vw, 36px); font-weight: 800; }
+h2 { font-size: 20px; font-weight: 600; }
+p { margin: 0; max-width: 65ch; }
+.lead { color: var(--muted); }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+section { display: grid; gap: 14px; }
+code { font-family: var(--f-mono); font-size: .92em; }
+
+.verdict-box { background: var(--accent-soft); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; }
+.verdict-box strong { color: var(--accent); }
+
+/* Simulador */
+.sim { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 18px; }
+.controls { display: grid; gap: 10px; }
+.rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rule > span { font-size: 13px; color: var(--muted); min-width: 120px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: 500 13px var(--f-body); background: transparent; color: var(--ink); border: 0; padding: 7px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.seg button:focus-visible, .nav button:focus-visible, .steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.steps button { font: 600 12px var(--f-mono); border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 8px; padding: 8px 4px; cursor: pointer; }
+.steps button.done { color: var(--ink); }
+.steps button.cur { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.stage { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 600px) { .stage { grid-template-columns: 1fr; } }
+.narr { display: grid; gap: 8px; min-width: 0; }
+.narr h3 { margin: 0; font: 600 17px var(--f-display); }
+.narr .who { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.outcome { font-size: 14px; border-radius: 8px; padding: 10px 12px; }
+.outcome.good { background: var(--ok-soft); color: var(--ok); }
+.outcome.badc { background: var(--bad-soft); color: var(--bad); }
+.outcome.warnc { background: var(--warn-soft); color: var(--warn); }
+
+.event { border: 1px dashed var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px; }
+.event .name { font-weight: 600; font-size: 14px; }
+.seats { display: flex; flex-wrap: wrap; gap: 6px; }
+.seat { width: 34px; height: 34px; border-radius: 6px; display: grid; place-items: center; font: 600 11px var(--f-mono); border: 1px solid var(--line); background: var(--bg); color: var(--muted); transition: background .25s, color .25s; }
+.seat.a { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.seat.b { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.seat.over { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); border-style: dashed; }
+.seat.pend { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); border-style: dashed; }
+.overflow-label { font-size: 12px; color: var(--bad); font-weight: 600; }
+.cap { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cap .num { font: 800 34px var(--f-display); font-variant-numeric: tabular-nums; }
+.cap .lbl { font-size: 13px; color: var(--muted); }
+.purchases { display: grid; gap: 4px; font-size: 13px; }
+.pill { font: 600 11px var(--f-mono); padding: 1px 7px; border-radius: 99px; margin-left: 6px; white-space: nowrap; }
+.p-await { background: var(--warn-soft); color: var(--warn); }
+.p-ok { background: var(--ok-soft); color: var(--ok); }
+.p-fail { background: var(--bad-soft); color: var(--bad); }
+.p-refund { background: var(--warn-soft); color: var(--warn); border: 1px dashed var(--warn); }
+.p-none { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+
+.nav { display: flex; justify-content: space-between; gap: 8px; }
+.nav button { font: 600 14px var(--f-body); border-radius: 8px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.nav button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.nav button:disabled { opacity: .4; cursor: default; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.yes { color: var(--ok); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .seat { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:10px">
+    <div class="eyebrow">Ticket · Estratégia de testes dos cenários críticos</div>
+    <h1>Capacity negativa ou zero?</h1>
+    <p class="lead">Nenhuma das duas. Quando a aprovação atrasada de A chega sem lugar, A é estornada, e B fica com os lugares que comprou.</p>
+  </header>
+
+  <div class="verdict-box">
+    <p><strong>Nova regra (decidida em 17/10):</strong> um callback autorizado atrasado só promove <code>Failed</code> → <code>Approved</code> se houver Capacity para <em>todos</em> os itens. Se faltar lugar em qualquer item, a Purchase continua <code>Failed("esgotado após pagamento")</code> com a marca <strong>"cobrança a estornar"</strong>: nenhum Ticket é emitido e a Capacity não muda.</p>
+  </div>
+
+  <section>
+    <h2>Simulador: a aprovação atrasada</h2>
+    <div class="sim">
+      <div class="controls">
+        <div class="rule">
+          <span>Regra aplicada</span>
+          <div class="seg" role="group" aria-label="Regra">
+            <button id="r-old" type="button" aria-pressed="false">Antiga: emite sempre</button>
+            <button id="r-new" type="button" aria-pressed="true">Nova: sem lugar, estorna</button>
+          </div>
+        </div>
+        <div class="rule">
+          <span>B compra</span>
+          <div class="seg" role="group" aria-label="Quantos ingressos B compra">
+            <button id="b5" type="button" aria-pressed="true">5 ingressos (esgota)</button>
+            <button id="b4" type="button" aria-pressed="false">4 (sobra 1)</button>
+            <button id="b3" type="button" aria-pressed="false">3 (sobram 2)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps" id="steps" role="tablist" aria-label="Passos"></div>
+
+      <div class="stage">
+        <div class="narr">
+          <div class="who" id="who"></div>
+          <h3 id="title"></h3>
+          <p id="text"></p>
+          <div class="outcome" id="outcome" hidden></div>
+        </div>
+        <div class="event">
+          <div class="name">Jazz no Parque · 5 lugares</div>
+          <div class="seats" id="seats"></div>
+          <div class="overflow-label" id="overflow" hidden></div>
+          <div class="cap"><span class="num" id="capnum">5</span><span class="lbl">Capacity gravada no banco</span></div>
+          <div class="purchases" id="purchases"></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button id="prev" type="button">← Voltar</button>
+        <button id="next" type="button" class="primary">Próximo passo →</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Antes e depois</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th></th><th>Antiga (emite sempre)</th><th>Nova (sem lugar, estorna)</th></tr></thead>
+        <tbody>
+          <tr><td>B fica com os 5 lugares?</td><td class="yes">Sim</td><td class="yes">Sim</td></tr>
+          <tr><td>Ticket além da lotação?</td><td class="no">Sim, 7 para 5 lugares</td><td class="yes">Nunca</td></tr>
+          <tr><td>A, cobrada sem lugar</td><td>Recebe Tickets de lugares que não existem</td><td>Fica <code>Failed</code> + "cobrança a estornar"</td></tr>
+          <tr><td>A, cobrada com lugar sobrando</td><td>Approved</td><td>Approved (igual)</td></tr>
+          <tr><td>Capacity pode ficar &lt; 0?</td><td>Sim (ou clamp em 0, que esconde o excesso)</td><td>Não, por construção</td></tr>
+          <tr><td>Aprovação parcial?</td><td>—</td><td>Não: tudo ou nada, estorna a Purchase inteira</td></tr>
+          <tr><td>Quem estorna</td><td>—</td><td>O operador, na maquininha; "Minhas compras" mostra o alerta com o <code>orderId</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead">Por que esta regra: em ingressos, quem confirma primeiro leva. Um pagamento que chega quando o lote já acabou volta para o cliente, como acontece com um Pix pago depois do vencimento. Como só existe uma <code>AwaitingPayment</code> por vez, B só consegue pagar depois que A já virou <code>Failed</code>; esse cenário é raro, mas a Cielo já mostrou no emulador que manda respostas fora do esperado.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var rule = "new", bq = 5, step = 0, AQ = 2, CAP = 5;
+  var $ = function (id) { return document.getElementById(id); };
+  var labels = {
+    await: ["AwaitingPayment", "p-await"], fail: ["Failed", "p-fail"], ok: ["Approved", "p-ok"],
+    refund: ["Failed · a estornar", "p-refund"], none: ["ainda não existe", "p-none"]
+  };
+
+  function lateOutcome() {
+    var left = CAP - bq;
+    if (rule === "old") {
+      return { a: "ok", cap: Math.max(0, left - AQ), aSeats: Math.min(AQ, Math.max(left, 0)), aOver: Math.max(0, AQ - left) };
+    }
+    if (left >= AQ) return { a: "ok", cap: left - AQ, aSeats: AQ, aOver: 0 };
+    return { a: "refund", cap: left, aSeats: 0, aOver: 0 };
+  }
+
+  var steps = [
+    { who: "Purchase A · 2 ingressos", title: "A pede pagamento",
+      text: function () { return "O \"Pagar\" confere: 5 lugares livres ≥ 2. A vai para o disco como AwaitingPayment e o deep link abre a Cielo. Enquanto A está pendente, ninguém mais consegue pagar nesta maquininha."; },
+      state: function () { return { a: "await", b: "none", cap: CAP, aSeats: 0, aPend: AQ, bSeats: 0, aOver: 0 }; } },
+    { who: "Purchase A", title: "A vira Failed, mas a Cielo cobrou",
+      text: function () { return "O callback não chega (o processo morreu). Na abertura a frio, a Reconciliation não acha a Cielo Order, e A vira Failed(\"pagamento não iniciado\"). Só que a Cielo cobrou de verdade, e o resultado vai chegar depois."; },
+      state: function () { return { a: "fail", b: "none", cap: CAP, aSeats: 0, aPend: 0, bSeats: 0, aOver: 0 }; } },
+    { who: "Purchase B · " + "{bq} ingressos", title: "B compra",
+      text: function () { return "A trava liberou, e outra pessoa paga " + bq + " ingressos. O \"Pagar\" confere " + CAP + " ≥ " + bq + ", a Cielo aprova na hora, e a aprovação atômica emite " + bq + " Tickets. Capacity: " + (CAP - bq) + (CAP - bq === 0 ? ". Event esgotado." : "."); },
+      state: function () { return { a: "fail", b: "ok", cap: CAP - bq, aSeats: 0, aPend: 0, bSeats: bq, aOver: 0 }; } },
+    { who: "Callback atrasado de A", title: "Chega a aprovação de A",
+      text: function () {
+        var left = CAP - bq;
+        if (rule === "old") return "Regra antiga: Failed → Approved sempre, porque o dinheiro saiu. Os 2 Tickets de A são emitidos mesmo com " + left + " lugar(es) livre(s).";
+        if (left >= AQ) return "Regra nova: há " + left + " lugares livres para os 2 de A. Failed → Approved: A recebe os Tickets normalmente.";
+        return "Regra nova: só há " + left + " lugar(es) livre(s) para os 2 de A. Tudo ou nada: A continua Failed, agora com o motivo \"esgotado após pagamento\" e a marca \"cobrança a estornar\". Nenhum Ticket é emitido e a Capacity fica como estava.";
+      },
+      state: function () { var o = lateOutcome(); return { a: o.a, b: "ok", cap: o.cap, aSeats: o.aSeats, aPend: 0, bSeats: bq, aOver: o.aOver }; } },
+    { who: "Resultado", title: "Quem fica com o quê",
+      text: function () {
+        var o = lateOutcome();
+        if (o.aOver > 0) return "B tem " + bq + " Tickets e A tem 2, mas o Event tem 5 lugares. São " + o.aOver + " Ticket(s) sem lugar, e a Capacity gravada (" + o.cap + ") esconde isso.";
+        if (o.a === "refund") return "B tem os " + bq + " Tickets que comprou e não percebe nada. A foi cobrada e não tem Ticket; o operador estorna na maquininha. Nunca há mais Tickets do que lugares.";
+        return "B tem " + bq + " Tickets, A tem 2. Cabem todos: " + (bq + AQ) + " de 5 lugares. Ninguém precisa de estorno.";
+      },
+      outcome: function () {
+        var o = lateOutcome();
+        if (o.aOver > 0) return ["badc", "Overbooking: " + o.aOver + " pessoa(s) com ingresso e sem lugar."];
+        if (o.a === "refund") return ["warnc", "\"Minhas compras\": Purchase A · Failed · esgotado após pagamento · cobrança a estornar (orderId da Cielo)."];
+        return ["good", "Tudo certo: lugares suficientes para A e B."];
+      },
+      state: function () { var o = lateOutcome(); return { a: o.a, b: "ok", cap: o.cap, aSeats: o.aSeats, aPend: 0, bSeats: bq, aOver: o.aOver }; } }
+  ];
+
+  var stepsEl = $("steps");
+  steps.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = "Passo " + (i + 1); b.setAttribute("role", "tab");
+    b.addEventListener("click", function () { step = i; render(); });
+    stepsEl.appendChild(b);
+  });
+
+  function seat(cls, txt) { var d = document.createElement("div"); d.className = "seat" + (cls ? " " + cls : ""); d.textContent = txt || ""; return d; }
+
+  function render() {
+    var s = steps[step], st = s.state();
+    Array.prototype.forEach.call(stepsEl.children, function (b, i) {
+      b.className = i === step ? "cur" : (i < step ? "done" : "");
+      b.setAttribute("aria-selected", i === step ? "true" : "false");
+    });
+    $("who").textContent = s.who.replace("{bq}", bq);
+    $("title").textContent = s.title;
+    $("text").textContent = s.text();
+    var oc = $("outcome");
+    if (s.outcome) { var r = s.outcome(); oc.hidden = false; oc.className = "outcome " + r[0]; oc.textContent = r[1]; }
+    else oc.hidden = true;
+
+    var seats = $("seats"); seats.innerHTML = "";
+    var filled = 0;
+    for (var i = 0; i < st.bSeats; i++) { seats.appendChild(seat("b", "B")); filled++; }
+    for (i = 0; i < st.aSeats; i++) { seats.appendChild(seat("a", "A")); filled++; }
+    for (i = 0; i < st.aPend; i++) { seats.appendChild(seat("pend", "A?")); filled++; }
+    for (i = filled; i < CAP; i++) seats.appendChild(seat("", ""));
+    for (i = 0; i < st.aOver; i++) seats.appendChild(seat("over", "A"));
+    var ov = $("overflow");
+    ov.hidden = st.aOver === 0;
+    ov.textContent = st.aOver + " Ticket(s) além dos 5 lugares";
+
+    $("capnum").textContent = st.cap;
+    $("purchases").innerHTML =
+      '<div>Purchase A · 2<span class="pill ' + labels[st.a][1] + '">' + labels[st.a][0] + '</span></div>' +
+      '<div>Purchase B · ' + bq + '<span class="pill ' + labels[st.b][1] + '">' + labels[st.b][0] + '</span></div>';
+
+    $("prev").disabled = step === 0;
+    $("next").disabled = step === steps.length - 1;
+    $("r-old").setAttribute("aria-pressed", rule === "old");
+    $("r-new").setAttribute("aria-pressed", rule === "new");
+    [3, 4, 5].forEach(function (n) { $("b" + n).setAttribute("aria-pressed", bq === n); });
+  }
+  $("prev").addEventListener("click", function () { if (step > 0) { step--; render(); } });
+  $("next").addEventListener("click", function () { if (step < steps.length - 1) { step++; render(); } });
+  $("r-old").addEventListener("click", function () { rule = "old"; render(); });
+  $("r-new").addEventListener("click", function () { rule = "new"; render(); });
+  [3, 4, 5].forEach(function (n) { $("b" + n).addEventListener("click", function () { bq = n; render(); }); });
+  render();
+})();
+</script>
+
+</html>

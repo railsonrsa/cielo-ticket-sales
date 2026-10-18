@@ -16,7 +16,7 @@ No emulador, a Cielo **cobrou duas vezes o mesmo `reference`**. Ela não tem cha
 6. **Callback idempotente**: só transiciona a partir de `AwaitingPayment`. Exceção única: um callback autorizado atrasado sobre uma Purchase `Failed` (o dinheiro saiu):
    - **há Capacity para todos os itens** → promove `Failed` → `Approved`, emite os Tickets e decrementa a Capacity a partir dos Purchase Items. **Não mexe no Cart**, e o próximo "Pagar" pede confirmação num dialog até a pessoa aceitar (o aceite fica gravado em disco);
    - **falta Capacity em algum item** → continua `Failed("esgotado após pagamento")` com a marca "cobrança a estornar". Não emite Tickets, não mexe na Capacity e não faz aprovação parcial (tudo ou nada). Vale "quem confirma primeiro leva": quem comprou nesse meio-tempo não é afetado.
-   _Revisto em 17/10/2026 no ticket [Estratégia de testes dos cenários críticos](https://github.com/railsonrsa/cielo-ticket-sales/issues/7). A versão anterior promovia sempre e deixava a Capacity negativa._
+   _Revisto em 17/10/2026 no ticket [Estratégia de testes dos cenários críticos](https://github.com/railsonrsa/cielo-ticket-sales/issues/7). A versão anterior promovia sempre e deixava a Capacity negativa._ Simulador do cenário: [`docs/simuladores/aprovacao-atrasada.html`](../simuladores/aprovacao-atrasada.html) (abrir no navegador).
 
 ## Alternativas descartadas
 
