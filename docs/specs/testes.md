@@ -26,5 +26,5 @@ JUnit4 (um runner só, por causa do Robolectric e do Compose test), Truth, Turbi
 
 ## CI e ordem
 
-- GitHub Actions rodando `./gradlew test lint` a cada push, sem meta de cobertura.
+- GitHub Actions rodando `./gradlew test lint` uma vez por commit: nos PRs e no push para a `main`. As branches de fatia não rodam no push, porque o teste local já roda antes de cada commit. Sem meta de cobertura.
 - TDD em `:core:domain`; o resto ganha testes logo depois de cada fatia.
