@@ -1,12 +1,29 @@
 package dev.railson.ticketsales.feature.checkout.presentation.cart
 
 import dev.railson.ticketsales.core.domain.model.Cart
+import dev.railson.ticketsales.core.domain.model.FailureReason
 
 internal data class CartUiState(
     val isLoading: Boolean = true,
     val cart: Cart = Cart(items = emptyList()),
+    /** Há uma Purchase `AwaitingPayment`: banner "Pagamento sem resposta" e nenhuma venda nova. */
+    val awaitingPayment: Boolean = false,
+    val dialog: CartDialog? = null,
 ) {
 
-    /** Um item em conflito com a Capacity bloqueia o "Pagar" até ser ajustado ou removido. */
-    val canPay: Boolean get() = cart.items.isNotEmpty() && !cart.hasCapacityConflict
+    /** Um item em conflito com a Capacity, ou um pagamento sem resposta, bloqueia o "Pagar". */
+    val canPay: Boolean get() = cart.items.isNotEmpty() && !cart.hasCapacityConflict && !awaitingPayment
+}
+
+/** A falha da última Purchase que precisa de uma decisão do Operator. */
+internal sealed interface CartDialog {
+
+    /** Erro genérico (2) ou recusa (3): dá para tentar de novo. */
+    data class RetryablePaymentFailure(val reason: FailureReason) : CartDialog
+
+    /** Código 4: tentar de novo não adianta. */
+    data object TerminalAuthError : CartDialog
+
+    /** A Cielo autorizou um valor diferente do total: nenhum Ticket, e a cobrança precisa ser estornada. */
+    data object AmountMismatch : CartDialog
 }

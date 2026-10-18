@@ -21,6 +21,8 @@ dependencies {
     implementation(projects.feature.catalog)
     implementation(projects.feature.checkout)
     implementation(projects.feature.purchases)
+    // A Cielo de verdade entra no #17, que decide como o build escolhe entre as duas.
+    implementation(projects.payment.fake)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

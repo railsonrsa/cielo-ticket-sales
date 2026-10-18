@@ -34,6 +34,34 @@ class TicketSalesMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun `version 3 adds purchases and tickets and keeps the cart of version 2`() {
+        helper.createDatabase(DATABASE_NAME, 2).use { database ->
+            database.execSQL(
+                "INSERT INTO event (id, name, starts_at_epoch_millis, venue, unit_price_cents, capacity) " +
+                    "VALUES ('show', 'Show', 0, 'Teatro', 4000, 7)",
+            )
+            database.execSQL("INSERT INTO cart_item (event_id, quantity) VALUES ('show', 2)")
+        }
+
+        val migrated = helper.runMigrationsAndValidate(DATABASE_NAME, 3, true)
+
+        migrated.query("SELECT quantity FROM cart_item WHERE event_id = 'show'").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getInt(0)).isEqualTo(2)
+        }
+        migrated.execSQL(
+            "INSERT INTO purchase (id, status, total_cents, created_at_epoch_millis, pending_refund) " +
+                "VALUES ('p1', 'AWAITING_PAYMENT', 8000, 0, 0)",
+        )
+        migrated.execSQL(
+            "INSERT INTO purchase_item (purchase_id, event_id, position, event_name, quantity, unit_price_cents) " +
+                "VALUES ('p1', 'show', 0, 'Show', 2, 4000)",
+        )
+        migrated.execSQL("INSERT INTO ticket (id, purchase_id, event_id) VALUES ('t1', 'p1', 'show')")
+        migrated.close()
+    }
+
     private companion object {
         const val DATABASE_NAME = "migration-test.db"
     }
