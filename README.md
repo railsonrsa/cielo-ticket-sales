@@ -18,7 +18,7 @@ Sem o emulador, a `FakePaymentTerminal` (`:payment:fake`) demonstra o fluxo.
 
 ## Decisões
 
-A spec está em [`docs/specs/`](docs/specs/), uma página por área: [domínio](docs/specs/dominio.md) · [pagamento Cielo](docs/specs/pagamento-cielo.md) · [arquitetura](docs/specs/arquitetura.md) · [persistência](docs/specs/persistencia.md) · [testes](docs/specs/testes.md) · [falhas](docs/specs/falhas.md). As decisões difíceis de reverter estão nos [ADRs](docs/adr/), e o vocabulário no [`GLOSSARY.md`](GLOSSARY.md). O histórico de cada decisão está no [mapa](https://github.com/railsonrsa/cielo-ticket-sales/issues/1). Os projetinhos descartáveis que responderam perguntas antes da spec estão em [`spikes/`](spikes/).
+A spec está em [`docs/specs/`](docs/specs/), uma página por área: [domínio](docs/specs/dominio.md) · [pagamento Cielo](docs/specs/pagamento-cielo.md) · [arquitetura](docs/specs/arquitetura.md) · [persistência](docs/specs/persistencia.md) · [testes](docs/specs/testes.md) · [falhas](docs/specs/falhas.md). As decisões difíceis de reverter estão nos [ADRs](docs/adr/), e o vocabulário no [`GLOSSARY.md`](GLOSSARY.md). O histórico de cada decisão está no [mapa](https://github.com/railsonrsa/cielo-ticket-sales/issues/1). A pesquisa da documentação da Cielo está em [`docs/research/`](docs/research/cielo-lio-sdk.md). Os projetinhos descartáveis que responderam perguntas antes da spec estão em [`spikes/`](spikes/).
 
 ## Arquitetura e libs
 

@@ -14,7 +14,7 @@
 ## O que foi feito
 
 - **Mapa** charted em [issue #1](https://github.com/railsonrsa/cielo-ticket-sales/issues/1), com 9 tickets: 1 de pesquisa, 1 tarefa (emulador) e 7 de grilling. Todos fechados; o fog que sobrou (design visual, analytics, monitoring, criptografia) foi tirado de escopo por causa do prazo.
-- **Pesquisa da Cielo** num subagente ([`research/cielo-lio-sdk`](https://github.com/railsonrsa/cielo-ticket-sales/blob/research/cielo-lio-sdk/docs/research/cielo-lio-sdk.md)): Deep Link em vez do SDK descontinuado.
+- **Pesquisa da Cielo** num subagente ([`docs/research/cielo-lio-sdk.md`](../../research/cielo-lio-sdk.md)): Deep Link em vez do SDK descontinuado.
 - **Emulador** em sessão assistida ([roteiro](../../emulador/roteiro-de-verificacao.md), sonda em [`spikes/lio-probe`](../../../spikes/lio-probe/)): a Cielo cobra duas vezes o mesmo `reference`; o `paidAmount` vem 0 mesmo em pagamento aprovado; Voltar não devolve callback.
 - **Decisões duráveis:** [ADR 0001](../../adr/0001-anti-duplicidade-e-reconciliacao.md) (anti-duplicidade e Reconciliation), [ADR 0002](../../adr/0002-porta-de-pagamento-so-de-disparo.md) (porta de pagamento só de disparo), [`GLOSSARY.md`](../../../GLOSSARY.md) com 12 termos.
 - **Simulador** da aprovação atrasada ([`docs/simuladores/aprovacao-atrasada.html`](../../simuladores/aprovacao-atrasada.html)) para decidir a regra de Capacity.

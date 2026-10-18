@@ -1,7 +1,7 @@
 # Roteiro de verificação no emulador Cielo
 
 Ticket: [Rodar o emulador Cielo e um pagamento de ponta a ponta](https://github.com/railsonrsa/cielo-ticket-sales/issues/9).
-Objetivo: confirmar no emulador o que a [pesquisa do SDK](https://github.com/railsonrsa/cielo-ticket-sales/blob/research/cielo-lio-sdk/docs/research/cielo-lio-sdk.md) deixou como 🔶 (inferência), antes de decidir a [Estratégia contra cobrança duplicada](https://github.com/railsonrsa/cielo-ticket-sales/issues/4).
+Objetivo: confirmar no emulador o que a [pesquisa do SDK](../research/cielo-lio-sdk.md) deixou como 🔶 (inferência), antes de decidir a [Estratégia contra cobrança duplicada](https://github.com/railsonrsa/cielo-ticket-sales/issues/4).
 
 ---
 

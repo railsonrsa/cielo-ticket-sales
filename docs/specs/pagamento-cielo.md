@@ -1,6 +1,6 @@
 # Spec — Pagamento com a Cielo LIO
 
-Origem: [SDK da Cielo LIO](https://github.com/railsonrsa/cielo-ticket-sales/issues/2) ([pesquisa completa](https://github.com/railsonrsa/cielo-ticket-sales/blob/research/cielo-lio-sdk/docs/research/cielo-lio-sdk.md)), [Rodar o emulador](https://github.com/railsonrsa/cielo-ticket-sales/issues/9) ([roteiro e resultados](../emulador/roteiro-de-verificacao.md)) e [Estratégia contra cobrança duplicada](https://github.com/railsonrsa/cielo-ticket-sales/issues/4) ([ADR 0001](../adr/0001-anti-duplicidade-e-reconciliacao.md)).
+Origem: [SDK da Cielo LIO](https://github.com/railsonrsa/cielo-ticket-sales/issues/2) ([pesquisa completa](../research/cielo-lio-sdk.md)), [Rodar o emulador](https://github.com/railsonrsa/cielo-ticket-sales/issues/9) ([roteiro e resultados](../emulador/roteiro-de-verificacao.md)) e [Estratégia contra cobrança duplicada](https://github.com/railsonrsa/cielo-ticket-sales/issues/4) ([ADR 0001](../adr/0001-anti-duplicidade-e-reconciliacao.md)).
 
 ## Integração: Deep Link, não SDK
 
