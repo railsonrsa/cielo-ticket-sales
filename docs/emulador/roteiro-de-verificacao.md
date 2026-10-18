@@ -12,7 +12,7 @@ Objetivo: confirmar no emulador o que a [pesquisa do SDK](https://github.com/rai
 | Android do AVD | **10 (API 29)** | O emulador Cielo só roda em 7.1 ou 10 e o APK exige `minSdk 25`; 10 é o `targetSdk` recomendado e o Android do DX8000 |
 | Imagem do sistema | `system-images;android-29;default;arm64-v8a` | Mac Apple Silicon → ARM64. **`default` = sem Google Play Services**, igual aos terminais Cielo |
 | Emulador Cielo | `lio-emulator.apk` **1.61.8** (pacote `br.com.cielosmart.orderservice`) | Último publicado; sem libs nativas, roda em ARM64 |
-| Android Studio | já instalado; usar o JDK dele (`jbr`) | o `java` do sistema (24) não serve para o `sdkmanager` |
+| JDK | **17** (`~/Library/Java/JavaVirtualMachines/jbr-17.0.14`) | o JBR do Android Studio é Java 25 e o Kotlin 2.0.21 da sonda não o reconhece |
 | App sonda | app mínimo que dispara `lio://` e mostra o callback | sem um app com o intent-filter do `urlCallback`, a resposta da Cielo se perde |
 | Credenciais | começar com valores falsos (`xxxxxxxx`) | o C4 verifica se o emulador aceita; só criar conta no portal se falhar |
 
@@ -27,7 +27,7 @@ Cole os comandos no terminal, na ordem. Eles assumem que o SDK está em `~/Libra
 ```bash
 # 0. Atalhos desta sessão de terminal
 export ANDROID_HOME=~/Library/Android/sdk
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
 
 # 1. Baixar a imagem do Android 10 (ARM64, sem Google)  ~1 GB
@@ -49,8 +49,9 @@ curl -L -o ~/Downloads/lio-emulator.apk \
   https://s3-sa-east-1.amazonaws.com/cielo-lio-store/apps/lio-emulator/1.61.8/lio-emulator.apk
 adb install ~/Downloads/lio-emulator.apk
 
-# 5. Instalar o app sonda (caminho definido quando ele existir)
-adb install <caminho>/lio-probe.apk
+# 5. Compilar e instalar o app sonda (branch spike/lio-probe)
+(cd spikes/lio-probe && ./gradlew assembleDebug)
+adb install spikes/lio-probe/app/build/outputs/apk/debug/app-debug.apk
 
 # 6. Deixar o log do callback aberto durante todos os testes
 adb logcat -s LIO_PROBE
