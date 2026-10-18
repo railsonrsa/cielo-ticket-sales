@@ -32,15 +32,18 @@ Decidir pela **forma do JSON**, nunca pelo `responsecode` (vem `0` no sucesso e 
 
 ## Reconciliation (`lio://orders`)
 
-- **Quando**: na abertura a frio do app com uma `AwaitingPayment`, e pelo botão "Verificar pagamento". **Nunca no resume.**
+- **Quando**: na abertura a frio do app com uma `AwaitingPayment` (a primeira `MainActivity` do processo), e pelo botão "Verificar pagamento". **Nunca no resume.**
+- **Disparo**: `lio://orders?request=<base64({accessToken, clientID, pageSize: 5, page})>&urlCallback=order://orders`, sem o foreground service. A resposta volta num **host próprio** (`order://orders`), na mesma `LioCallbackActivity`: um `{code, reason}` da consulta vira verificação inconclusiva, nunca falha de pagamento (decidido no [#18](https://github.com/railsonrsa/cielo-ticket-sales/issues/18)).
+- **Busca em memória**: o `ReconcilePurchaseUseCase` é único no app e pede a próxima página a cada resposta. Sem resposta em 15 s, a verificação é inconclusiva. Se o processo morrer no meio, a busca se perde sem contar, e a próxima abertura a frio recomeça.
 - `lio://orders` é silencioso (~40 ms), paginado de 5 em 5, com `totalItems`/`totalPages` e o `reference` em cada Order. Pagamentos cancelados ou abandonados também viram Order, com `status: "ENTERED"`.
 - **Busca das duas pontas para o meio** (páginas 1, N, 2, N-1…), porque a ordenação não é documentada. Para quando acha o `reference` (lendo também a página vizinha, para pegar duplicatas), quando cada ponta passa do `createdAt` da Purchase (com folga de alguns minutos), quando as pontas se encontram, ou ao chegar a 20 páginas (inconclusivo).
 - **Desfechos**: soma autorizada == total → `Approved`; só `ENTERED` → `NotCompleted`; nenhuma Order → `NotStarted`; consulta falhou ou foi inconclusiva → continua `AwaitingPayment`; duas Orders pagas → `Approved` com a primeira + Pending Refund; valor divergente → `AmountMismatch` + Pending Refund.
-- Pendência que não bloqueia: o cenário **C12b** do roteiro (ordem nas páginas 2 e última, formato do `createdAt`) só confirma o atalho de parada.
+- **Atalho de parada**: o trecho não lido fica entre o último `createdAt` lido de cada ponta; se ele não chega a 10 min da hora da Purchase, a busca para. Vale para as duas ordens, e só quando as duas pontas trazem `createdAt`.
+- **C12b** (rodado no #18): a ordem **se mantém** entre as páginas (mais antiga primeiro); toda Order traz `createdAt` no formato `Oct 18, 2026 4:52:48 PM`, na hora local do aparelho; a página 1 vem com **6** Orders (a semente `id: "1"` a mais), e **a última da página 1 se repete como a primeira da página 2**. A busca conta cada `orderId` uma vez só.
 
 ## Manifest (todo em `:payment:cielo-lio`)
 
-- intent-filter `order://response` na `LioCallbackActivity`
+- intent-filters `order://response` e `order://orders` na `LioCallbackActivity`
 - `<queries>` com `com.ads.lio.uriappclient` **e** `br.com.cielosmart.orderservice` (é este que atende no emulador)
 - meta-data `cs_integration_type=uri`
 - o foreground service do disparo

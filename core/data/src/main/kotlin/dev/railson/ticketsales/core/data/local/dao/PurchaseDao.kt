@@ -49,7 +49,7 @@ internal interface PurchaseDao {
     @Query(
         "UPDATE purchase SET status = :status, failure_reason = :failureReason, order_id = :orderId, " +
             "authorized_amount_cents = :authorizedAmountCents, cielo_code = :cieloCode, auth_code = :authCode, " +
-            "pending_refund = :pendingRefund WHERE id = :id",
+            "pending_refund = :pendingRefund, extra_order_ids = :extraOrderIds WHERE id = :id",
     )
     suspend fun updateOutcome(
         id: String,
@@ -60,7 +60,11 @@ internal interface PurchaseDao {
         cieloCode: String?,
         authCode: String?,
         pendingRefund: Boolean,
+        extraOrderIds: String,
     )
+
+    @Query("UPDATE purchase SET inconclusive_checks = inconclusive_checks + 1 WHERE id = :id")
+    suspend fun incrementInconclusiveChecks(id: String)
 
     /** Devolve 0 quando não há lugar suficiente: a Capacity nunca fica abaixo de 0. */
     @Query("UPDATE event SET capacity = capacity - :quantity WHERE id = :eventId AND capacity >= :quantity")

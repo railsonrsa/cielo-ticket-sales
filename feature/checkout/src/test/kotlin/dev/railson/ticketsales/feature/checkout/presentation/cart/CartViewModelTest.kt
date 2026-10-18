@@ -16,13 +16,19 @@ import dev.railson.ticketsales.core.domain.terminal.RecordingPaymentTerminal
 import dev.railson.ticketsales.core.domain.usecase.cart.ChangeCartQuantityUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.ObserveCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.RemoveFromCartUseCase
+import dev.railson.ticketsales.core.domain.model.PurchaseStatus
+import dev.railson.ticketsales.core.domain.terminal.CieloOrdersStub
+import dev.railson.ticketsales.core.domain.terminal.anOrderFor
+import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.HandlePaymentOutcomeUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveAwaitingPaymentUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchaseUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -39,6 +45,7 @@ class CartViewModelTest {
     private val purchaseRepository = FakePurchaseRepository(eventRepository, cartRepository)
     private val terminal = RecordingPaymentTerminal(purchaseRepository)
     private val handleOutcome = HandlePaymentOutcomeUseCase(purchaseRepository)
+    private lateinit var reconcile: ReconcilePurchaseUseCase
 
     @Before
     fun setMainDispatcher() {
@@ -251,19 +258,110 @@ class CartViewModelTest {
         }
     }
 
-    private suspend fun cartViewModelWithOneTicket(): CartViewModel {
+    @Test
+    fun `checking an unanswered payment asks the terminal for the order list and shows progress`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.uiState.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            viewModel.onAction(CartAction.CheckPayment)
+            advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(terminal.requestedPages).containsExactly(1)
+            assertThat(state.isCheckingPayment).isTrue()
+            assertThat(state.canAbandon).isFalse()
+        }
+    }
+
+    @Test
+    fun `a check that finds the order approves the purchase and navigates to the result`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.effects.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            val purchase = terminal.requested.single()
+            viewModel.onAction(CartAction.CheckPayment)
+            advanceUntilIdle()
+            reconcile.onOrdersPage(CieloOrdersStub(listOf(anOrderFor(purchase.id, purchase.total))).page(1))
+            advanceUntilIdle()
+
+            assertThat(awaitItem()).isEqualTo(CartEffect.PurchaseApproved(purchase.id))
+        }
+    }
+
+    @Test
+    fun `giving up is offered only after an inconclusive check, and asks for confirmation`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.uiState.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().canAbandon).isFalse()
+
+            viewModel.onAction(CartAction.CheckPayment)
+            advanceUntilIdle()
+            reconcile.onOrdersFailed()
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().canAbandon).isTrue()
+
+            viewModel.onAction(CartAction.AskToAbandon)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().dialog).isEqualTo(CartDialog.ConfirmAbandon)
+
+            viewModel.onAction(CartAction.ConfirmAbandon)
+            advanceUntilIdle()
+            val state = expectMostRecentItem()
+            assertThat(state.awaitingPayment).isFalse()
+            assertThat(state.dialog).isNull()
+            assertThat(state.canPay).isTrue()
+            assertThat(state.cart.items.single().quantity).isEqualTo(1)
+        }
+        assertThat(purchaseRepository.find(terminal.requested.single().id)!!.status)
+            .isEqualTo(PurchaseStatus.Failed(FailureReason.Abandoned))
+    }
+
+    @Test
+    fun `dismissing the confirmation keeps waiting for the payment`() = runTest {
+        val viewModel = cartViewModelWithOneTicket()
+
+        viewModel.uiState.test {
+            viewModel.onAction(CartAction.Pay)
+            advanceUntilIdle()
+            viewModel.onAction(CartAction.CheckPayment)
+            advanceUntilIdle()
+            reconcile.onOrdersFailed()
+            viewModel.onAction(CartAction.AskToAbandon)
+            advanceUntilIdle()
+            viewModel.onAction(CartAction.DismissDialog)
+            advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(state.dialog).isNull()
+            assertThat(state.awaitingPayment).isTrue()
+        }
+    }
+
+    private suspend fun TestScope.cartViewModelWithOneTicket(): CartViewModel {
         eventRepository.setEvents(listOf(anEvent(id = "show", unitPrice = Money(cents = 4_000), capacity = 10)))
         cartRepository.setQuantity("show", 1)
         return cartViewModel()
     }
 
-    private fun cartViewModel() = CartViewModel(
-        observeCart = ObserveCartUseCase(cartRepository, eventRepository),
-        changeQuantity = ChangeCartQuantityUseCase(cartRepository, eventRepository),
-        removeFromCart = RemoveFromCartUseCase(cartRepository),
-        startPurchase = StartPurchaseUseCase(ObserveCartUseCase(cartRepository, eventRepository), purchaseRepository, terminal),
-        observeAwaitingPayment = ObserveAwaitingPaymentUseCase(purchaseRepository),
-        observePurchase = ObservePurchaseUseCase(purchaseRepository),
-        savedStateHandle = SavedStateHandle(),
-    )
+    private fun TestScope.cartViewModel(): CartViewModel {
+        reconcile = ReconcilePurchaseUseCase(purchaseRepository, terminal, scope = backgroundScope)
+        return CartViewModel(
+            observeCart = ObserveCartUseCase(cartRepository, eventRepository),
+            changeQuantity = ChangeCartQuantityUseCase(cartRepository, eventRepository),
+            removeFromCart = RemoveFromCartUseCase(cartRepository),
+            startPurchase = StartPurchaseUseCase(ObserveCartUseCase(cartRepository, eventRepository), purchaseRepository, terminal),
+            observeAwaitingPayment = ObserveAwaitingPaymentUseCase(purchaseRepository),
+            observePurchase = ObservePurchaseUseCase(purchaseRepository),
+            reconcilePurchase = reconcile,
+            abandonPurchase = AbandonPurchaseUseCase(purchaseRepository, reconcile),
+            savedStateHandle = SavedStateHandle(),
+        )
+    }
 }

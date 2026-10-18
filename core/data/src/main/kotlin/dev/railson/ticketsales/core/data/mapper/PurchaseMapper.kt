@@ -33,7 +33,11 @@ internal fun Purchase.toEntity() = PurchaseEntity(
     cieloCode = cieloOrder?.cieloCode,
     authCode = cieloOrder?.authCode,
     pendingRefund = pendingRefund,
+    extraOrderIds = extraOrderIds.toColumn(),
+    inconclusiveChecks = inconclusiveChecks,
 )
+
+internal fun List<String>.toColumn(): String = joinToString(separator = ",")
 
 internal fun Purchase.itemEntities() = items.mapIndexed { position, item ->
     PurchaseItemEntity(
@@ -66,6 +70,8 @@ internal fun PurchaseWithItems.toDomain() = Purchase(
         )
     },
     pendingRefund = purchase.pendingRefund,
+    extraOrderIds = purchase.extraOrderIds.split(',').filter(String::isNotEmpty),
+    inconclusiveChecks = purchase.inconclusiveChecks,
 )
 
 internal fun TicketEntity.toDomain() = Ticket(id = id, purchaseId = purchaseId, eventId = eventId)

@@ -8,6 +8,10 @@ internal data class CartUiState(
     val cart: Cart = Cart(items = emptyList()),
     /** Há uma Purchase `AwaitingPayment`: banner "Pagamento sem resposta" e nenhuma venda nova. */
     val awaitingPayment: Boolean = false,
+    /** O "Verificar pagamento" está consultando a Cielo. */
+    val isCheckingPayment: Boolean = false,
+    /** A órfã já teve uma verificação inconclusiva: aviso de nova tentativa e o "Desistir desta compra". */
+    val canAbandon: Boolean = false,
     val dialog: CartDialog? = null,
 ) {
 
@@ -29,4 +33,7 @@ internal sealed interface CartDialog {
 
     /** A Cielo autorizou um valor diferente do total: nenhum Ticket, e a cobrança precisa ser estornada. */
     data object AmountMismatch : CartDialog
+
+    /** A confirmação do "Desistir desta compra". */
+    data object ConfirmAbandon : CartDialog
 }

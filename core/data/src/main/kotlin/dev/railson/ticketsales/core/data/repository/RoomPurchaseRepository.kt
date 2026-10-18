@@ -8,6 +8,7 @@ import dev.railson.ticketsales.core.data.mapper.AWAITING_PAYMENT
 import dev.railson.ticketsales.core.data.mapper.FAILED
 import dev.railson.ticketsales.core.data.mapper.itemEntities
 import dev.railson.ticketsales.core.data.mapper.toDomain
+import dev.railson.ticketsales.core.data.mapper.toColumn
 import dev.railson.ticketsales.core.data.mapper.toEntity
 import dev.railson.ticketsales.core.domain.model.CieloOrder
 import dev.railson.ticketsales.core.domain.model.FailureReason
@@ -47,7 +48,7 @@ internal class RoomPurchaseRepository(
     override fun observeTickets(purchaseId: String): Flow<List<Ticket>> =
         purchaseDao.observeTickets(purchaseId).map { tickets -> tickets.map { it.toDomain() } }
 
-    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder) {
+    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>) {
         database.withTransaction {
             val purchase = checkNotNull(purchaseDao.find(purchaseId)?.toDomain()) { "Unknown purchase $purchaseId" }
             purchase.items.forEach { item ->
@@ -68,12 +69,19 @@ internal class RoomPurchaseRepository(
                 authorizedAmountCents = cieloOrder.authorizedAmount.cents,
                 cieloCode = cieloOrder.cieloCode,
                 authCode = cieloOrder.authCode,
-                pendingRefund = false,
+                pendingRefund = extraOrderIds.isNotEmpty(),
+                extraOrderIds = extraOrderIds.toColumn(),
             )
         }
     }
 
-    override suspend fun fail(purchaseId: String, reason: FailureReason, cieloOrder: CieloOrder?, pendingRefund: Boolean) {
+    override suspend fun fail(
+        purchaseId: String,
+        reason: FailureReason,
+        cieloOrder: CieloOrder?,
+        pendingRefund: Boolean,
+        extraOrderIds: List<String>,
+    ) {
         purchaseDao.updateOutcome(
             id = purchaseId,
             status = FAILED,
@@ -83,6 +91,11 @@ internal class RoomPurchaseRepository(
             cieloCode = cieloOrder?.cieloCode,
             authCode = cieloOrder?.authCode,
             pendingRefund = pendingRefund,
+            extraOrderIds = extraOrderIds.toColumn(),
         )
+    }
+
+    override suspend fun recordInconclusiveCheck(purchaseId: String) {
+        purchaseDao.incrementInconclusiveChecks(purchaseId)
     }
 }

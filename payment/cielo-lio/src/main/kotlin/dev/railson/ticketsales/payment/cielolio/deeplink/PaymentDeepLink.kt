@@ -12,8 +12,8 @@ internal object PaymentDeepLink {
     const val CALLBACK = "order://response"
 
     // O emulador aceita credenciais falsas (cenário C4); um terminal real exigiria as do portal da Cielo.
-    private const val CLIENT_ID = "xxxxxxxx"
-    private const val ACCESS_TOKEN = "xxxxxxxx"
+    const val CLIENT_ID = "xxxxxxxx"
+    const val ACCESS_TOKEN = "xxxxxxxx"
 
     fun payment(purchase: Purchase): String {
         val request = PaymentRequest(

@@ -1,5 +1,6 @@
 package dev.railson.ticketsales.feature.purchases.presentation.purchases
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import dev.railson.ticketsales.core.domain.model.FailureReason
@@ -10,10 +11,15 @@ import dev.railson.ticketsales.core.domain.model.anEvent
 import dev.railson.ticketsales.core.domain.repository.FakeCartRepository
 import dev.railson.ticketsales.core.domain.repository.FakeEventRepository
 import dev.railson.ticketsales.core.domain.repository.FakePurchaseRepository
+import dev.railson.ticketsales.core.domain.terminal.RecordingPaymentTerminal
+import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchasesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -26,6 +32,8 @@ class PurchasesViewModelTest {
 
     private val eventRepository = FakeEventRepository()
     private val purchaseRepository = FakePurchaseRepository(eventRepository, FakeCartRepository())
+    private val terminal = RecordingPaymentTerminal(purchaseRepository)
+    private lateinit var reconcile: ReconcilePurchaseUseCase
 
     @Before
     fun setMainDispatcher() {
@@ -43,7 +51,7 @@ class PurchasesViewModelTest {
         purchaseRepository.create(aPurchase(id = "declined", status = PurchaseStatus.Failed(FailureReason.Declined)))
         purchaseRepository.create(aPurchase(id = "awaiting", status = PurchaseStatus.AwaitingPayment, createdAtEpochMillis = 1_000))
 
-        PurchasesViewModel(ObservePurchasesUseCase(purchaseRepository)).uiState.test {
+        purchasesViewModel().uiState.test {
             assertThat(awaitItem()).isEqualTo(PurchasesUiState(isLoading = true))
 
             val loaded = awaitItem()
@@ -58,7 +66,7 @@ class PurchasesViewModelTest {
         purchaseRepository.create(aPurchase(id = "old", createdAtEpochMillis = 1_000))
         purchaseRepository.create(aPurchase(id = "new", status = PurchaseStatus.AwaitingPayment, createdAtEpochMillis = 2_000))
 
-        PurchasesViewModel(ObservePurchasesUseCase(purchaseRepository)).uiState.test {
+        purchasesViewModel().uiState.test {
             skipItems(1)
             assertThat(awaitItem().purchases.first().status).isEqualTo(PurchaseStatus.AwaitingPayment)
 
@@ -72,9 +80,77 @@ class PurchasesViewModelTest {
 
     @Test
     fun `no purchases stops loading with an empty list`() = runTest {
-        PurchasesViewModel(ObservePurchasesUseCase(purchaseRepository)).uiState.test {
+        purchasesViewModel().uiState.test {
             skipItems(1)
             assertThat(awaitItem()).isEqualTo(PurchasesUiState(isLoading = false, purchases = emptyList()))
         }
+    }
+
+    @Test
+    fun `checking the orphan at the top asks the terminal for the order list and shows progress`() = runTest {
+        purchaseRepository.create(aPurchase(id = "orphan", status = PurchaseStatus.AwaitingPayment))
+        val viewModel = purchasesViewModel()
+
+        viewModel.uiState.test {
+            viewModel.onAction(PurchasesAction.CheckPayment)
+            advanceUntilIdle()
+
+            val state = expectMostRecentItem()
+            assertThat(terminal.requestedPages).containsExactly(1)
+            assertThat(state.isCheckingPayment).isTrue()
+            assertThat(state.canAbandon).isFalse()
+        }
+    }
+
+    @Test
+    fun `after an inconclusive check the operator can give up on the orphan, with confirmation`() = runTest {
+        purchaseRepository.create(aPurchase(id = "orphan", status = PurchaseStatus.AwaitingPayment))
+        val viewModel = purchasesViewModel()
+
+        viewModel.uiState.test {
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().canAbandon).isFalse()
+
+            viewModel.onAction(PurchasesAction.CheckPayment)
+            advanceUntilIdle()
+            reconcile.onOrdersFailed()
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().canAbandon).isTrue()
+
+            viewModel.onAction(PurchasesAction.AskToAbandon)
+            advanceUntilIdle()
+            assertThat(expectMostRecentItem().confirmingAbandon).isTrue()
+
+            viewModel.onAction(PurchasesAction.ConfirmAbandon)
+            advanceUntilIdle()
+            val state = expectMostRecentItem()
+            assertThat(state.confirmingAbandon).isFalse()
+            // Abandonada, sem dinheiro envolvido: sai de "Minhas compras".
+            assertThat(state.purchases).isEmpty()
+        }
+        assertThat(purchaseRepository.find("orphan")!!.status).isEqualTo(PurchaseStatus.Failed(FailureReason.Abandoned))
+    }
+
+    @Test
+    fun `asking to give up before an inconclusive check opens nothing`() = runTest {
+        purchaseRepository.create(aPurchase(id = "orphan", status = PurchaseStatus.AwaitingPayment))
+        val viewModel = purchasesViewModel()
+
+        viewModel.uiState.test {
+            viewModel.onAction(PurchasesAction.AskToAbandon)
+            advanceUntilIdle()
+
+            assertThat(expectMostRecentItem().confirmingAbandon).isFalse()
+        }
+    }
+
+    private fun TestScope.purchasesViewModel(): PurchasesViewModel {
+        reconcile = ReconcilePurchaseUseCase(purchaseRepository, terminal, scope = backgroundScope)
+        return PurchasesViewModel(
+            observePurchases = ObservePurchasesUseCase(purchaseRepository),
+            reconcilePurchase = reconcile,
+            abandonPurchase = AbandonPurchaseUseCase(purchaseRepository, reconcile),
+            savedStateHandle = SavedStateHandle(),
+        )
     }
 }

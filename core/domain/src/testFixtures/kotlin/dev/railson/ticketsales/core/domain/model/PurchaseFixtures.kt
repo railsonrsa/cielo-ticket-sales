@@ -14,6 +14,7 @@ fun aPurchase(
     status: PurchaseStatus = PurchaseStatus.Approved,
     createdAtEpochMillis: Long = 1_792_000_000_000,
     pendingRefund: Boolean = false,
+    inconclusiveChecks: Int = 0,
 ) = Purchase(
     id = id,
     status = status,
@@ -21,4 +22,5 @@ fun aPurchase(
     total = Money(cents = 5_000),
     createdAtEpochMillis = createdAtEpochMillis,
     pendingRefund = pendingRefund,
+    inconclusiveChecks = inconclusiveChecks,
 )
