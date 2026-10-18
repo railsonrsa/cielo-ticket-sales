@@ -51,4 +51,4 @@ Koin (não depende de GMS e nenhum requisito exige Hilt), com um teste `verify()
 ## Bibliotecas
 
 Compose (BOM), Navigation Compose, Koin, Room, kotlinx-serialization, kotlinx-coroutines. Testes em [testes](testes.md).
-**A escolher na implementação:** gerador de QR sem GMS (ex.: ZXing `core`).
+**QR** (decidido no [#16](https://github.com/railsonrsa/cielo-ticket-sales/issues/16)): ZXing `core`, só o encoder em Java puro e sem GMS, como dependência só de `:feature:purchases`. A matriz é desenhada num `Canvas` do Compose, sempre preto no branco.
