@@ -7,7 +7,7 @@ Origem: [Estratégia de testes dos cenários críticos](https://github.com/rails
 | Nível | Onde | O que prova |
 |---|---|---|
 | **Base: use cases** (JUnit puro) | `:core:domain` | Pagar + trava de uma `AwaitingPayment` por vez (duplo toque, retry); callback idempotente; callback atrasado nos 3 desfechos (com lugar → `Approved`; sem lugar → `SoldOutAfterPayment` + Pending Refund; falta lugar num só Event → a Purchase inteira vai para estorno); desfechos da Reconciliation (aprovada, `ENTERED`, nenhuma Order, inconclusiva, duplicata, valor divergente); busca pelas duas pontas; saída `Abandoned` |
-| **Room real** (Robolectric, em memória) | `:core:data` | aprovação atômica (Tickets 1 por unidade + Capacity + Cart) contra SQL de verdade; seed carregado uma vez |
+| **Room real** (Robolectric, em memória) | `:core:data` | aprovação atômica (Tickets 1 por unidade + Capacity + Cart) contra SQL de verdade; seed carregado uma vez; Cart sobrevive a reabrir o banco; cada migração com `MigrationTestHelper` |
 | **ViewModels** (`kotlinx-coroutines-test` + Turbine) | `:feature:*` | `UiState` e efeitos |
 | **Tradução da Cielo** | `:payment:cielo-lio` | Base64 → `PaymentOutcome` (códigos 1–4, ilegível) e `lio://orders` → `OrdersPage`, com **fixtures capturadas no emulador** (inclui `paidAmount = 0` com `PAID` e cobrança duplicada) |
 | **Processo recriado** (Robolectric) | `:payment:cielo-lio` | 1 teste: abrir a `LioCallbackActivity` com intent de fixture e conferir o banco |

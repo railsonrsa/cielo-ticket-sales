@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_title">Carrinho</string>
+    <string name="cart_back">Voltar</string>
+    <string name="cart_empty">O carrinho está vazio.</string>
+    <string name="cart_unit_price">%s cada</string>
+    <string name="cart_decrease">−</string>
+    <string name="cart_increase">+</string>
+    <string name="cart_sold_out">Esgotado</string>
+    <plurals name="cart_only_left">
+        <item quantity="one">Só resta %d</item>
+        <item quantity="other">Só restam %d</item>
+    </plurals>
+    <string name="cart_adjust_to">Ajustar para %d</string>
+    <string name="cart_remove">Remover</string>
+    <string name="cart_total">Total</string>
+    <string name="cart_pay">Pagar</string>
+</resources>

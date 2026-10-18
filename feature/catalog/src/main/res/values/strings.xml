@@ -3,6 +3,8 @@
     <string name="catalog_title">Eventos</string>
     <string name="catalog_empty">Nenhum evento à venda.</string>
     <string name="catalog_sold_out">Esgotado</string>
+    <string name="catalog_add_to_cart">Adicionar</string>
+    <string name="catalog_open_cart">Abrir carrinho</string>
     <plurals name="catalog_capacity">
         <item quantity="one">%d lugar</item>
         <item quantity="other">%d lugares</item>

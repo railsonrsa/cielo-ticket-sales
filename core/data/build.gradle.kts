@@ -12,6 +12,9 @@ android {
         // O teste do seed lê o events.json de verdade.
         unitTests.isIncludeAndroidResources = true
     }
+
+    // O teste de migração abre os esquemas exportados.
+    sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
 }
 
 room {
@@ -27,6 +30,7 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.kotlinx.serialization.json)
 
+    testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)

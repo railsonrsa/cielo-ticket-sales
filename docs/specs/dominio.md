@@ -7,7 +7,7 @@ Estado atual do modelo. Origem: [Modelo de domínio e ciclo de vida da Purchase]
 | Entidade | Campos | Observações |
 |---|---|---|
 | **Event** | `id`, nome, data/hora, local, preço unitário (`Money`), Capacity | vem do seed (ver [persistência](persistencia.md)) |
-| **Cart** | itens: Event + quantidade, **sem preço** | persistido em disco; não é Purchase e não reserva nada |
+| **Cart** | Cart Items: Event + quantidade, **sem preço** | persistido em disco; não é Purchase e não reserva nada; subtotal e total usam o preço atual do Event |
 | **Purchase** | `id` (UUID gerado no "Pagar"), estado, itens, total, data/hora, dados da Cielo Order, marca Pending Refund | `id` vai como `reference` no deep link |
 | **Purchase Item** | Event, quantidade, **preço unitário do momento do "Pagar"** | mudar o preço do Event depois não altera compras antigas |
 | **Ticket** | `id` (UUID), Purchase, Event | **1 por unidade**; o QR é só o UUID, sem assinatura |
@@ -41,7 +41,7 @@ Uma marca separada do estado. Vale para `Failed(AmountMismatch)`, `Failed(SoldOu
 
 ## Regras
 
-- **Cart**: só esvazia na aprovação normal. Se a Purchase falhar, o Cart fica intacto. A tela limita a quantidade à Capacity atual; um item esgotado bloqueia o "Pagar" até ser ajustado ou removido.
+- **Cart**: só esvazia na aprovação normal. Se a Purchase falhar, o Cart fica intacto. Os use cases de adicionar e de alterar a quantidade recusam passar da Capacity atual (sem gravar), e a tela espelha o limite. Um Cart Item com Capacity Conflict (`SoldOut` ou `OnlyLeft(n)`) bloqueia o "Pagar" até ser ajustado ou removido. A quantidade mínima é 1; zerar é remover.
 - **Capacity no "Pagar"**: o use case revalida, sem reservar, e devolve os Events em conflito. Nesse caso nenhuma Purchase é criada.
 - **Aprovação atômica**: uma única transação com estado → `Approved`, Tickets (1 por unidade), decremento da Capacity de cada Event, Cart esvaziado e dados da Cielo Order gravados (`orderId`, `cieloCode`, `authCode`, `amount`). Ou acontece tudo, ou nada.
 - **Aprovação atrasada** (`Failed` → `Approved`): emite Tickets e decrementa a Capacity a partir dos Purchase Items, **não mexe no Cart** e grava a pendência de um dialog de confirmação ("Revisar carrinho" / "Continuar e pagar") que aparece no próximo "Pagar" até o Operator aceitar.
