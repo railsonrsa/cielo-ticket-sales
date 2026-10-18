@@ -49,7 +49,7 @@ curl -L -o ~/Downloads/lio-emulator.apk \
   https://s3-sa-east-1.amazonaws.com/cielo-lio-store/apps/lio-emulator/1.61.8/lio-emulator.apk
 adb install ~/Downloads/lio-emulator.apk
 
-# 5. Compilar e instalar o app sonda (branch spike/lio-probe)
+# 5. Compilar e instalar o app sonda (spikes/lio-probe)
 (cd spikes/lio-probe && ./gradlew assembleDebug)
 adb install spikes/lio-probe/app/build/outputs/apk/debug/app-debug.apk
 
@@ -96,7 +96,7 @@ No AVD:
 
 ## 4. Resultados
 
-Rodados em 17/10/2026 no AVD `Cielo_API29` (Android 10, ARM64, sem GMS) com o emulador Cielo 1.61.8 e a sonda da branch `spike/lio-probe`.
+Rodados em 17/10/2026 no AVD `Cielo_API29` (Android 10, ARM64, sem GMS) com o emulador Cielo 1.61.8 e a sonda em [`spikes/lio-probe`](../../spikes/lio-probe/).
 
 | # | Resultado | `responsecode` | Surpresas |
 |---|---|---|---|

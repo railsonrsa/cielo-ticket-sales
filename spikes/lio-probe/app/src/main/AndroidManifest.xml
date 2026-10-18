@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <queries>
+        <package android:name="com.ads.lio.uriappclient" />
+        <package android:name="br.com.cielosmart.orderservice" />
+    </queries>
+
+    <application
+        android:label="LIO Probe"
+        android:icon="@android:drawable/ic_menu_search"
+        android:theme="@android:style/Theme.Material.Light">
+
+        <meta-data android:name="cs_integration_type" android:value="uri" />
+
+        <activity
+            android:name=".ProbeActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="order" android:host="response" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".PaymentForegroundService"
+            android:exported="false" />
+    </application>
+</manifest>
