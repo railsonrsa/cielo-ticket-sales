@@ -28,6 +28,18 @@ _Avoid_: Line, cart item
 Descobrir, consultando a Cielo pelo `reference`, o desfecho de uma Purchase cujo resultado do pagamento nunca chegou ao app.
 _Avoid_: Sync, verificação (no código)
 
+**Operator**:
+Quem segura a maquininha e conduz a venda; é quem lê as mensagens do app.
+_Avoid_: Usuário, vendedor, cliente (o cliente compra, o Operator opera)
+
+**Failure Reason**:
+O motivo pelo qual uma Purchase terminou `Failed`, escolhido de uma lista fechada.
+_Avoid_: Erro, status
+
+**Pending Refund**:
+Marca numa Purchase cujo dinheiro saiu do cliente sem contrapartida (cobrança duplicada, valor divergente ou Event esgotado após o pagamento) e precisa ser estornado fora do app.
+_Avoid_: Estorno (é o ato, não a marca), refund sozinho
+
 **Ticket**:
 O direito de entrar num Event, emitido só a partir de uma Purchase aprovada.
 _Avoid_: Ingresso (no código), voucher

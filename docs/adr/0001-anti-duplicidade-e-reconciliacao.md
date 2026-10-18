@@ -18,6 +18,11 @@ No emulador, a Cielo **cobrou duas vezes o mesmo `reference`**. Ela não tem cha
    - **falta Capacity em algum item** → continua `Failed("esgotado após pagamento")` com a marca "cobrança a estornar". Não emite Tickets, não mexe na Capacity e não faz aprovação parcial (tudo ou nada). Vale "quem confirma primeiro leva": quem comprou nesse meio-tempo não é afetado.
    _Revisto em 17/10/2026 no ticket [Estratégia de testes dos cenários críticos](https://github.com/railsonrsa/cielo-ticket-sales/issues/7). A versão anterior promovia sempre e deixava a Capacity negativa._ Simulador do cenário: [`docs/simuladores/aprovacao-atrasada.html`](../simuladores/aprovacao-atrasada.html) (abrir no navegador).
 
+7. **Saída de emergência da órfã**: depois de pelo menos uma Reconciliation inconclusiva, o Operator pode "Desistir desta compra" (com confirmação), e a Purchase vai para `Failed(Abandoned)`. Sem isso, a Cielo fora do ar travaria a maquininha para sempre. Uma aprovação que chegue depois cai na regra do item 6.
+8. **Callback ilegível** (`response` ausente ou com Base64/JSON inválido) é tratado como callback que não chegou: a Purchase continua `AwaitingPayment`.
+
+_Emenda de 17/10/2026, ticket [Mensagens e ações do usuário para cada falha](https://github.com/railsonrsa/cielo-ticket-sales/issues/10): os motivos entre aspas acima viraram o tipo fechado `FailureReason` (`NotCompleted`, `NotStarted`, `AmountMismatch`, `SoldOutAfterPayment`…), e "cobrança a estornar" virou a marca **Pending Refund** (ver `GLOSSARY.md`). Os itens 7 e 8 entraram nessa emenda._
+
 ## Alternativas descartadas
 
 - Confiar na ordenação de `lio://orders`: não é documentada e pode mudar no terminal real.
