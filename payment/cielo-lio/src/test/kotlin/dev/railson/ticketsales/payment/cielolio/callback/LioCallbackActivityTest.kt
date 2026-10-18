@@ -13,6 +13,7 @@ import dev.railson.ticketsales.core.domain.model.Purchase
 import dev.railson.ticketsales.core.domain.model.PurchaseItem
 import dev.railson.ticketsales.core.domain.model.PurchaseStatus
 import dev.railson.ticketsales.core.domain.repository.PurchaseRepository
+import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.payment.cielolio.di.cieloLioModule
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -28,12 +29,13 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
-/** O `order://response` de ponta a ponta: do intent da Cielo até o banco, com o Room e o seed de verdade. */
+/** O `order://response` e o `order://orders` de ponta a ponta: do intent da Cielo até o banco, com o Room e o seed de verdade. */
 @RunWith(RobolectricTestRunner::class)
 class LioCallbackActivityTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private lateinit var purchaseRepository: PurchaseRepository
+    private lateinit var reconcile: ReconcilePurchaseUseCase
 
     @Before
     fun startApp() {
@@ -43,6 +45,7 @@ class LioCallbackActivityTest {
             modules(dataModule, cieloLioModule)
         }
         purchaseRepository = get(PurchaseRepository::class.java)
+        reconcile = get(ReconcilePurchaseUseCase::class.java)
     }
 
     @After
@@ -76,8 +79,38 @@ class LioCallbackActivityTest {
         assertThat(awaitOutcome(purchase.id).status).isEqualTo(PurchaseStatus.Failed(FailureReason.CanceledByOperator))
     }
 
-    private fun deliverCallback(response: String): LioCallbackActivity {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("order://response?response=$response&responsecode=0"))
+    @Test
+    fun `the pages of a reconciliation approve the orphan found in the order list`() {
+        // O reference e o valor da Order paga na página 1 capturada no emulador.
+        val orphan = awaitingPurchase(id = "e1b75b25-11fc-4d7c-828f-2c97268a5e03", total = Money(4_000))
+        runBlocking { purchaseRepository.create(orphan) }
+        runBlocking { reconcile() }
+
+        deliverCallback(fixtureBase64("orders-page-1.json"), host = "orders")
+        // Achou na 1, mas só decide depois de ler a vizinha 2, atrás de uma cobrança duplicada.
+        assertThat(runBlocking { purchaseRepository.find(orphan.id) }!!.status).isEqualTo(PurchaseStatus.AwaitingPayment)
+        deliverCallback(fixtureBase64("orders-page-2.json"), host = "orders")
+
+        val stored = awaitOutcome(orphan.id)
+        assertThat(stored.status).isEqualTo(PurchaseStatus.Approved)
+        assertThat(stored.cieloOrder?.orderId).isEqualTo("0e373937-5565-41f5-af4f-f5ce77a6aafe")
+        assertThat(stored.pendingRefund).isFalse()
+    }
+
+    @Test
+    fun `an error on the orders host is an inconclusive check, never a payment failure`() {
+        val orphan = awaitingPurchase(id = "purchase-1", total = Money(5_000))
+        runBlocking { purchaseRepository.create(orphan) }
+        runBlocking { reconcile() }
+
+        deliverCallback(fixtureBase64("failure-canceled.json"), host = "orders")
+
+        awaitMainLooper { runBlocking { purchaseRepository.find(orphan.id) }!!.inconclusiveChecks == 1 }
+        assertThat(runBlocking { purchaseRepository.find(orphan.id) }!!.status).isEqualTo(PurchaseStatus.AwaitingPayment)
+    }
+
+    private fun deliverCallback(response: String, host: String = "response"): LioCallbackActivity {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("order://$host?response=$response&responsecode=0"))
             .setClass(context, LioCallbackActivity::class.java)
         return Robolectric.buildActivity(LioCallbackActivity::class.java, intent).setup().get()
     }

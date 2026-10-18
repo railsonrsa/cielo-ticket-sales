@@ -62,6 +62,26 @@ class TicketSalesMigrationTest {
         migrated.close()
     }
 
+    @Test
+    fun `version 4 adds the reconciliation columns and keeps the orphan of version 3`() {
+        helper.createDatabase(DATABASE_NAME, 3).use { database ->
+            database.execSQL(
+                "INSERT INTO purchase (id, status, total_cents, created_at_epoch_millis, pending_refund) " +
+                    "VALUES ('p1', 'AWAITING_PAYMENT', 8000, 0, 0)",
+            )
+        }
+
+        val migrated = helper.runMigrationsAndValidate(DATABASE_NAME, 4, true)
+
+        migrated.query("SELECT status, inconclusive_checks, extra_order_ids FROM purchase WHERE id = 'p1'").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getString(0)).isEqualTo("AWAITING_PAYMENT")
+            assertThat(cursor.getInt(1)).isEqualTo(0)
+            assertThat(cursor.getString(2)).isEmpty()
+        }
+        migrated.close()
+    }
+
     private companion object {
         const val DATABASE_NAME = "migration-test.db"
     }

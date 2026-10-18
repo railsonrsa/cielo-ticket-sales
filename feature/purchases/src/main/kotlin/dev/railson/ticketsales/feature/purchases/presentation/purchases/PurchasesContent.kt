@@ -2,6 +2,8 @@ package dev.railson.ticketsales.feature.purchases.presentation.purchases
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -9,12 +11,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,10 +41,12 @@ import dev.railson.ticketsales.feature.purchases.presentation.components.Purchas
 @Composable
 internal fun PurchasesContent(
     uiState: PurchasesUiState,
+    onAction: (PurchasesAction) -> Unit,
     onBack: () -> Unit,
     onOpenReceipt: (purchaseId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (uiState.confirmingAbandon) ConfirmAbandonDialog(onAction)
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -66,15 +74,54 @@ internal fun PurchasesContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(uiState.purchases, key = Purchase::id) { purchase ->
-                    // Comprovante só de Purchase aprovada. A AwaitingPayment ganha o "Verificar pagamento" no #18.
-                    PurchaseRow(
-                        purchase = purchase,
-                        onClick = { onOpenReceipt(purchase.id) }.takeIf { purchase.status == PurchaseStatus.Approved },
-                    )
+                    if (purchase.status == PurchaseStatus.AwaitingPayment) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            PurchaseRow(purchase = purchase, onClick = null)
+                            AwaitingPaymentActions(uiState, onAction)
+                        }
+                    } else {
+                        // Comprovante só de Purchase aprovada.
+                        PurchaseRow(
+                            purchase = purchase,
+                            onClick = { onOpenReceipt(purchase.id) }.takeIf { purchase.status == PurchaseStatus.Approved },
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/** A Reconciliation da Purchase sem resposta e, depois de uma verificação inconclusiva, a saída de emergência. */
+@Composable
+private fun AwaitingPaymentActions(uiState: PurchasesUiState, onAction: (PurchasesAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (uiState.canAbandon) {
+            Text(stringResource(R.string.purchases_check_inconclusive), style = MaterialTheme.typography.bodyMedium)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = { onAction(PurchasesAction.CheckPayment) }, enabled = !uiState.isCheckingPayment) {
+                Text(stringResource(if (uiState.isCheckingPayment) R.string.purchases_checking_payment else R.string.purchases_check_payment))
+            }
+            if (uiState.canAbandon) {
+                TextButton(onClick = { onAction(PurchasesAction.AskToAbandon) }) { Text(stringResource(R.string.purchases_abandon)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmAbandonDialog(onAction: (PurchasesAction) -> Unit) {
+    val dismiss = { onAction(PurchasesAction.DismissDialog) }
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text(stringResource(R.string.purchases_abandon_title)) },
+        text = { Text(stringResource(R.string.purchases_abandon_body)) },
+        confirmButton = {
+            TextButton(onClick = { onAction(PurchasesAction.ConfirmAbandon) }) { Text(stringResource(R.string.purchases_abandon_confirm)) }
+        },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.purchases_abandon_keep_waiting)) } },
+    )
 }
 
 @Preview
@@ -86,7 +133,7 @@ private fun PurchasesContentPreview() {
             uiState = PurchasesUiState(
                 isLoading = false,
                 purchases = listOf(
-                    Purchase("a", PurchaseStatus.AwaitingPayment, listOf(show), Money(8_000), 1_792_000_300_000),
+                    Purchase("a", PurchaseStatus.AwaitingPayment, listOf(show), Money(8_000), 1_792_000_300_000, inconclusiveChecks = 1),
                     Purchase(
                         "b",
                         PurchaseStatus.Failed(FailureReason.SoldOutAfterPayment),
@@ -98,6 +145,7 @@ private fun PurchasesContentPreview() {
                     Purchase("c", PurchaseStatus.Approved, listOf(show), Money(8_000), 1_792_000_100_000),
                 ),
             ),
+            onAction = {},
             onBack = {},
             onOpenReceipt = {},
         )

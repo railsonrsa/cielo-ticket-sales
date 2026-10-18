@@ -47,6 +47,7 @@ import kotlin.random.Random
 internal class FakePaymentActivity : ComponentActivity() {
 
     private val handleOutcome: HandlePaymentOutcomeUseCase by inject()
+    private val cieloOrders: FakeCieloOrders by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +65,7 @@ internal class FakePaymentActivity : ComponentActivity() {
     }
 
     private fun deliver(outcome: PaymentOutcome) {
+        cieloOrders.record(outcome)
         lifecycleScope.launch {
             handleOutcome(outcome)
             finish()

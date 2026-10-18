@@ -9,6 +9,8 @@ import dev.railson.ticketsales.core.domain.model.PurchaseStatus
 import dev.railson.ticketsales.core.domain.usecase.cart.ChangeCartQuantityUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.ObserveCartUseCase
 import dev.railson.ticketsales.core.domain.usecase.cart.RemoveFromCartUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
+import dev.railson.ticketsales.core.domain.usecase.payment.ReconcilePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseResult
 import dev.railson.ticketsales.core.domain.usecase.payment.StartPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveAwaitingPaymentUseCase
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -37,6 +40,8 @@ internal class CartViewModel(
     private val startPurchase: StartPurchaseUseCase,
     observeAwaitingPayment: ObserveAwaitingPaymentUseCase,
     observePurchase: ObservePurchaseUseCase,
+    private val reconcilePurchase: ReconcilePurchaseUseCase,
+    private val abandonPurchase: AbandonPurchaseUseCase,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -46,13 +51,30 @@ internal class CartViewModel(
     private val trackedPurchase: Flow<Purchase?> = savedStateHandle.getStateFlow<String?>(TRACKED_PURCHASE_ID, null)
         .flatMapLatest { purchaseId -> if (purchaseId == null) flowOf(null) else observePurchase(purchaseId) }
 
+    private val awaitingPayment: Flow<Purchase?> = observeAwaitingPayment()
+
     /** A checagem prévia barrou o "Pagar": não há Purchase para observar, então o aviso fica aqui. */
     private val terminalUnavailable = savedStateHandle.getStateFlow(TERMINAL_UNAVAILABLE, false)
 
+    private val confirmingAbandon = savedStateHandle.getStateFlow(CONFIRMING_ABANDON, false)
+
+    private val screenFlags: Flow<ScreenFlags> =
+        combine(terminalUnavailable, confirmingAbandon, reconcilePurchase.isRunning, ::ScreenFlags)
+
     val uiState: StateFlow<CartUiState> =
-        combine(observeCart(), observeAwaitingPayment(), trackedPurchase, terminalUnavailable) { cart, awaiting, tracked, unavailable ->
-            val dialog = tracked?.dialog() ?: CartDialog.TerminalUnavailable.takeIf { unavailable }
-            CartUiState(isLoading = false, cart = cart, awaitingPayment = awaiting != null, dialog = dialog)
+        combine(observeCart(), awaitingPayment, trackedPurchase, screenFlags) { cart, awaiting, tracked, flags ->
+            val canAbandon = awaiting?.canBeAbandoned == true && !flags.checkingPayment
+            val dialog = tracked?.dialog()
+                ?: CartDialog.TerminalUnavailable.takeIf { flags.terminalUnavailable }
+                ?: CartDialog.ConfirmAbandon.takeIf { flags.confirmingAbandon && canAbandon }
+            CartUiState(
+                isLoading = false,
+                cart = cart,
+                awaitingPayment = awaiting != null,
+                isCheckingPayment = awaiting != null && flags.checkingPayment,
+                canAbandon = canAbandon,
+                dialog = dialog,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CartUiState())
 
     init {
@@ -74,6 +96,14 @@ internal class CartViewModel(
                 CartAction.DismissDialog -> {
                     stopTracking()
                     savedStateHandle[TERMINAL_UNAVAILABLE] = false
+                    savedStateHandle[CONFIRMING_ABANDON] = false
+                }
+                // O desfecho chega pelo banco: o banner some ou ganha o aviso de verificação inconclusiva.
+                CartAction.CheckPayment -> reconcilePurchase()
+                CartAction.AskToAbandon -> savedStateHandle[CONFIRMING_ABANDON] = true
+                CartAction.ConfirmAbandon -> {
+                    savedStateHandle[CONFIRMING_ABANDON] = false
+                    awaitingPayment.first()?.let { abandonPurchase(it.id) }
                 }
             }
         }
@@ -117,5 +147,8 @@ internal class CartViewModel(
     private companion object {
         const val TRACKED_PURCHASE_ID = "tracked_purchase_id"
         const val TERMINAL_UNAVAILABLE = "terminal_unavailable"
+        const val CONFIRMING_ABANDON = "confirming_abandon"
     }
 }
+
+private data class ScreenFlags(val terminalUnavailable: Boolean, val confirmingAbandon: Boolean, val checkingPayment: Boolean)

@@ -29,6 +29,14 @@
                     android:host="response"
                     android:scheme="order" />
             </intent-filter>
+            <!-- A lista de Orders da Reconciliation volta num host próprio. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:host="orders"
+                    android:scheme="order" />
+            </intent-filter>
         </activity>
 
         <service

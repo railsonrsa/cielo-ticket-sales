@@ -1,5 +1,6 @@
 package dev.railson.ticketsales.feature.purchases.di
 
+import dev.railson.ticketsales.core.domain.usecase.payment.AbandonPurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchaseUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObservePurchasesUseCase
 import dev.railson.ticketsales.core.domain.usecase.purchase.ObserveTicketsUseCase
@@ -14,6 +15,7 @@ val purchasesModule = module {
     factoryOf(::ObservePurchasesUseCase)
     factoryOf(::ObservePurchaseUseCase)
     factoryOf(::ObserveTicketsUseCase)
+    factoryOf(::AbandonPurchaseUseCase)
     viewModelOf(::PurchasesViewModel)
     viewModel { params -> ReceiptViewModel(purchaseId = params.get(), observePurchase = get(), observeTickets = get()) }
 }

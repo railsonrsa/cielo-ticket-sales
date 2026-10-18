@@ -42,7 +42,7 @@ class FakePurchaseRepository(
     override fun observeTickets(purchaseId: String): Flow<List<Ticket>> =
         tickets.map { all -> all.filter { it.purchaseId == purchaseId } }
 
-    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder) {
+    override suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String>) {
         val purchase = purchases.value.getValue(purchaseId)
         val events = eventRepository.observeEvents().first()
         val soldByEvent = purchase.items.groupBy { it.eventId }.mapValues { (_, items) -> items.sumOf { it.quantity } }
@@ -55,13 +55,38 @@ class FakePurchaseRepository(
         tickets.update { all ->
             all + purchase.items.flatMap { item -> List(item.quantity) { Ticket("ticket-${nextTicket++}", purchaseId, item.eventId) } }
         }
-        purchases.update { it + (purchaseId to purchase.copy(status = PurchaseStatus.Approved, cieloOrder = cieloOrder)) }
+        val approved = purchase.copy(
+            status = PurchaseStatus.Approved,
+            cieloOrder = cieloOrder,
+            pendingRefund = extraOrderIds.isNotEmpty(),
+            extraOrderIds = extraOrderIds,
+        )
+        purchases.update { it + (purchaseId to approved) }
     }
 
-    override suspend fun fail(purchaseId: String, reason: FailureReason, cieloOrder: CieloOrder?, pendingRefund: Boolean) {
+    override suspend fun fail(
+        purchaseId: String,
+        reason: FailureReason,
+        cieloOrder: CieloOrder?,
+        pendingRefund: Boolean,
+        extraOrderIds: List<String>,
+    ) {
         purchases.update { all ->
             val purchase = all.getValue(purchaseId)
-            all + (purchaseId to purchase.copy(status = PurchaseStatus.Failed(reason), cieloOrder = cieloOrder, pendingRefund = pendingRefund))
+            val failed = purchase.copy(
+                status = PurchaseStatus.Failed(reason),
+                cieloOrder = cieloOrder,
+                pendingRefund = pendingRefund,
+                extraOrderIds = extraOrderIds,
+            )
+            all + (purchaseId to failed)
+        }
+    }
+
+    override suspend fun recordInconclusiveCheck(purchaseId: String) {
+        purchases.update { all ->
+            val purchase = all.getValue(purchaseId)
+            all + (purchaseId to purchase.copy(inconclusiveChecks = purchase.inconclusiveChecks + 1))
         }
     }
 }

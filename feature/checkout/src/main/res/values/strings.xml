@@ -18,6 +18,14 @@
     <string name="cart_payment_canceled">Pagamento cancelado</string>
     <string name="cart_awaiting_payment_title">Pagamento sem resposta</string>
     <string name="cart_awaiting_payment_body">A maquininha ainda não respondeu sobre a última compra. Nenhuma venda nova até lá.</string>
+    <string name="cart_check_payment">Verificar pagamento</string>
+    <string name="cart_checking_payment">Verificando…</string>
+    <string name="cart_check_inconclusive">Não foi possível confirmar com a Cielo. Tente de novo em instantes.</string>
+    <string name="cart_abandon">Desistir desta compra</string>
+    <string name="cart_abandon_title">Desistir desta compra?</string>
+    <string name="cart_abandon_body">As vendas voltam a ser liberadas. Se a cobrança tiver passado, ela vai ficar marcada para estorno.</string>
+    <string name="cart_abandon_confirm">Desistir</string>
+    <string name="cart_abandon_keep_waiting">Continuar aguardando</string>
     <string name="cart_payment_error_title">Erro no pagamento</string>
     <string name="cart_payment_declined_title">Pagamento negado</string>
     <string name="cart_payment_retry_body">Nada foi cobrado e o carrinho continua igual.</string>

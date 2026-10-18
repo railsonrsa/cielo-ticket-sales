@@ -69,7 +69,7 @@ internal fun CartContent(
         bottomBar = { if (uiState.cart.items.isNotEmpty()) PayBar(uiState, onPay = { onAction(CartAction.Pay) }) },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            if (uiState.awaitingPayment) AwaitingPaymentBanner()
+            if (uiState.awaitingPayment) AwaitingPaymentBanner(uiState, onAction)
             CartBody(uiState, onAction, Modifier.weight(1f).fillMaxWidth())
         }
     }
@@ -100,13 +100,24 @@ private fun CartBody(uiState: CartUiState, onAction: (CartAction) -> Unit, conte
     }
 }
 
-/** Bloqueia vendas novas enquanto a Purchase `AwaitingPayment` não tiver desfecho. */
+/** Bloqueia vendas novas enquanto a Purchase `AwaitingPayment` não tiver desfecho, e oferece a Reconciliation. */
 @Composable
-private fun AwaitingPaymentBanner() {
+private fun AwaitingPaymentBanner(uiState: CartUiState, onAction: (CartAction) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.cart_awaiting_payment_title), style = MaterialTheme.typography.titleSmall)
             Text(stringResource(R.string.cart_awaiting_payment_body), style = MaterialTheme.typography.bodyMedium)
+            if (uiState.canAbandon) {
+                Text(stringResource(R.string.cart_check_inconclusive), style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = { onAction(CartAction.CheckPayment) }, enabled = !uiState.isCheckingPayment) {
+                    Text(stringResource(if (uiState.isCheckingPayment) R.string.cart_checking_payment else R.string.cart_check_payment))
+                }
+                if (uiState.canAbandon) {
+                    TextButton(onClick = { onAction(CartAction.AskToAbandon) }) { Text(stringResource(R.string.cart_abandon)) }
+                }
+            }
         }
     }
 }
@@ -137,6 +148,13 @@ private fun CartDialogs(dialog: CartDialog, onAction: (CartAction) -> Unit) {
             onDismissRequest = dismiss,
             text = { Text(stringResource(R.string.cart_terminal_unavailable)) },
             confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_ok)) } },
+        )
+        CartDialog.ConfirmAbandon -> AlertDialog(
+            onDismissRequest = dismiss,
+            title = { Text(stringResource(R.string.cart_abandon_title)) },
+            text = { Text(stringResource(R.string.cart_abandon_body)) },
+            confirmButton = { TextButton(onClick = { onAction(CartAction.ConfirmAbandon) }) { Text(stringResource(R.string.cart_abandon_confirm)) } },
+            dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cart_abandon_keep_waiting)) } },
         )
         CartDialog.AmountMismatch -> AlertDialog(
             onDismissRequest = dismiss,

@@ -3,6 +3,8 @@ package dev.railson.ticketsales.core.domain.model
 /**
  * Uma tentativa de compra, cobrada num único pagamento. O [id] vai como `reference` para a Cielo.
  * Os [items] guardam o preço do momento do "Pagar": mudar o preço do Event depois não altera a Purchase.
+ * [extraOrderIds] são as Cielo Orders pagas a mais (cobrança duplicada), que justificam o [pendingRefund].
+ * [inconclusiveChecks] conta as Reconciliations sem resposta: depois da primeira, o Operator pode desistir.
  */
 data class Purchase(
     val id: String,
@@ -12,9 +14,14 @@ data class Purchase(
     val createdAtEpochMillis: Long,
     val cieloOrder: CieloOrder? = null,
     val pendingRefund: Boolean = false,
+    val extraOrderIds: List<String> = emptyList(),
+    val inconclusiveChecks: Int = 0,
 ) {
 
     val ticketCount: Int get() = items.sumOf(PurchaseItem::quantity)
+
+    /** "Desistir desta compra" só vale para a órfã que já teve ao menos uma verificação inconclusiva (ADR 0001, item 7). */
+    val canBeAbandoned: Boolean get() = status == PurchaseStatus.AwaitingPayment && inconclusiveChecks > 0
 }
 
 /** Três estados; o motivo de uma falha é um dado, não um estado. */

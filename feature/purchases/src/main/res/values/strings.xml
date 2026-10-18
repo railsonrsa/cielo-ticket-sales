@@ -4,6 +4,14 @@
     <string name="purchases_back">Voltar</string>
     <string name="purchases_empty">Nenhuma compra ainda.</string>
     <string name="purchases_awaiting_payment">Pagamento sem resposta</string>
+    <string name="purchases_check_payment">Verificar pagamento</string>
+    <string name="purchases_checking_payment">Verificando…</string>
+    <string name="purchases_check_inconclusive">Não foi possível confirmar com a Cielo. Tente de novo em instantes.</string>
+    <string name="purchases_abandon">Desistir desta compra</string>
+    <string name="purchases_abandon_title">Desistir desta compra?</string>
+    <string name="purchases_abandon_body">As vendas voltam a ser liberadas. Se a cobrança tiver passado, ela vai ficar marcada para estorno.</string>
+    <string name="purchases_abandon_confirm">Desistir</string>
+    <string name="purchases_abandon_keep_waiting">Continuar aguardando</string>
     <string name="purchases_no_tickets">Nenhum ingresso emitido</string>
     <plurals name="purchases_tickets">
         <item quantity="one">%d ingresso</item>

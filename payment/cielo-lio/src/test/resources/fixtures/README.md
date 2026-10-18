@@ -10,4 +10,6 @@ O JSON decodificado do parâmetro `response`, capturado pela sonda [`spikes/lio-
 | `payment-duplicate-first.json`, `payment-duplicate-second.json` | C5: o mesmo `reference` cobrado duas vezes | capturado |
 | `failure-canceled.json` | C2: código 1 | capturado |
 | `failure-error.json` | C3: código 2 | capturado |
+| `orders-page-1.json`, `orders-page-2.json` | C12b: `lio://orders` com 10 Orders; a página 1 traz a semente e repete a última na página 2 | capturado em 18/10/2026, pelo `order://orders` do app |
+| `orders-page-beyond-last.json` | `lio://orders` na página 3 de 2: `results` vazio | capturado em 18/10/2026 |
 | `failure-declined.json`, `failure-auth.json` | códigos 3 e 4 | **derivado**: o emulador não os gerou; mesmo formato `{code, reason}`, com o `reason` inventado |

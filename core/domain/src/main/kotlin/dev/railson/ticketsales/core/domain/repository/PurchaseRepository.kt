@@ -26,9 +26,19 @@ interface PurchaseRepository {
 
     /**
      * Aprovação atômica: estado → `Approved`, a [cieloOrder] gravada, um Ticket por unidade, a Capacity de cada
-     * Event decrementada e o Cart esvaziado. Ou acontece tudo, ou nada.
+     * Event decrementada e o Cart esvaziado. Ou acontece tudo, ou nada. [extraOrderIds] (Orders pagas a mais)
+     * ficam gravados com a marca Pending Refund.
      */
-    suspend fun approve(purchaseId: String, cieloOrder: CieloOrder)
+    suspend fun approve(purchaseId: String, cieloOrder: CieloOrder, extraOrderIds: List<String> = emptyList())
 
-    suspend fun fail(purchaseId: String, reason: FailureReason, cieloOrder: CieloOrder? = null, pendingRefund: Boolean = false)
+    suspend fun fail(
+        purchaseId: String,
+        reason: FailureReason,
+        cieloOrder: CieloOrder? = null,
+        pendingRefund: Boolean = false,
+        extraOrderIds: List<String> = emptyList(),
+    )
+
+    /** Uma Reconciliation terminou sem resposta: a Purchase continua como está, só a contagem sobe. */
+    suspend fun recordInconclusiveCheck(purchaseId: String)
 }

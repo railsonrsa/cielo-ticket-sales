@@ -111,6 +111,33 @@ class RoomPurchaseRepositoryTest {
         assertThat(all.single().items.single().eventId).isEqualTo(show.id)
     }
 
+    @Test
+    fun `approving with extra paid orders keeps them flagged for refund`() = runTest {
+        val (show) = seededEvents()
+        repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 1, Money(4_000))))
+
+        repository.approve(PURCHASE_ID, CIELO_ORDER, extraOrderIds = listOf("order-2", "order-3"))
+
+        val approved = repository.find(PURCHASE_ID)!!
+        assertThat(approved.status).isEqualTo(PurchaseStatus.Approved)
+        assertThat(approved.pendingRefund).isTrue()
+        assertThat(approved.extraOrderIds).containsExactly("order-2", "order-3").inOrder()
+    }
+
+    @Test
+    fun `an inconclusive check only bumps the count of the orphan`() = runTest {
+        val (show) = seededEvents()
+        repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 1, Money(4_000))))
+        assertThat(repository.find(PURCHASE_ID)!!.extraOrderIds).isEmpty()
+
+        repository.recordInconclusiveCheck(PURCHASE_ID)
+        repository.recordInconclusiveCheck(PURCHASE_ID)
+
+        val orphan = repository.findAwaitingPayment()!!
+        assertThat(orphan.inconclusiveChecks).isEqualTo(2)
+        assertThat(orphan.canBeAbandoned).isTrue()
+    }
+
     private suspend fun seededEvents() = database.eventDao().observeAll().first().filter { it.capacity >= 10 }
 
     private suspend fun capacityOf(eventId: String) = database.eventDao().observeAll().first().single { it.id == eventId }.capacity

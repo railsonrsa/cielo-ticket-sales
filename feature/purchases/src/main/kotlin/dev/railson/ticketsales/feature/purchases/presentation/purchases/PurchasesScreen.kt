@@ -12,5 +12,5 @@ internal fun PurchasesScreen(
     viewModel: PurchasesViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    PurchasesContent(uiState = uiState, onBack = onBack, onOpenReceipt = onOpenReceipt)
+    PurchasesContent(uiState = uiState, onAction = viewModel::onAction, onBack = onBack, onOpenReceipt = onOpenReceipt)
 }

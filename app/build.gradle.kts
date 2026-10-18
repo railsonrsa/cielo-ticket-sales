@@ -26,6 +26,11 @@ android {
             dimension = "terminal"
         }
     }
+
+    testOptions {
+        // O teste da abertura a frio sobe a MainActivity de verdade, com o manifest e o seed do :core:data.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -48,4 +53,7 @@ dependencies {
 
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
+    testImplementation(testFixtures(projects.core.domain))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
