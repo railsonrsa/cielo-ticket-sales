@@ -5,6 +5,7 @@
     <string name="catalog_sold_out">Esgotado</string>
     <string name="catalog_add_to_cart">Adicionar</string>
     <string name="catalog_open_cart">Abrir carrinho</string>
+    <string name="catalog_open_purchases">Minhas compras</string>
     <plurals name="catalog_capacity">
         <item quantity="one">%d lugar</item>
         <item quantity="other">%d lugares</item>

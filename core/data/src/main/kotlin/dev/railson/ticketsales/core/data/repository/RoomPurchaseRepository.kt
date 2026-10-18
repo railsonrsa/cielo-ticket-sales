@@ -36,6 +36,9 @@ internal class RoomPurchaseRepository(
 
     override fun observe(id: String): Flow<Purchase?> = purchaseDao.observe(id).map { it?.toDomain() }
 
+    override fun observeAll(): Flow<List<Purchase>> =
+        purchaseDao.observeAll().map { purchases -> purchases.map { it.toDomain() } }
+
     override suspend fun findAwaitingPayment(): Purchase? = purchaseDao.findByStatus(AWAITING_PAYMENT)?.toDomain()
 
     override fun observeAwaitingPayment(): Flow<Purchase?> =

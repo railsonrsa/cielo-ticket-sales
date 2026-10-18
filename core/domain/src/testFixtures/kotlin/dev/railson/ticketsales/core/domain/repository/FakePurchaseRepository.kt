@@ -32,6 +32,8 @@ class FakePurchaseRepository(
 
     override fun observe(id: String): Flow<Purchase?> = purchases.map { it[id] }
 
+    override fun observeAll(): Flow<List<Purchase>> = purchases.map { it.values.toList() }
+
     override suspend fun findAwaitingPayment(): Purchase? = observeAwaitingPayment().first()
 
     override fun observeAwaitingPayment(): Flow<Purchase?> =
