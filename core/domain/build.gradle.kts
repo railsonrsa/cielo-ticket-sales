@@ -1,7 +1,12 @@
 plugins {
     alias(libs.plugins.cielo.jvm.library)
+    `java-test-fixtures`
 }
 
 dependencies {
-    implementation(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testFixturesImplementation(libs.kotlinx.coroutines.core)
 }
