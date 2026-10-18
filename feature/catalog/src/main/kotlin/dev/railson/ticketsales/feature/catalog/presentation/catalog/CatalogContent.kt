@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -36,6 +37,7 @@ internal fun CatalogContent(
     uiState: CatalogUiState,
     onAction: (CatalogAction) -> Unit,
     onOpenCart: () -> Unit,
+    onOpenPurchases: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -43,7 +45,12 @@ internal fun CatalogContent(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.catalog_title)) },
-                actions = { CartButton(ticketCount = uiState.cartTicketCount, onClick = onOpenCart) },
+                actions = {
+                    IconButton(onClick = onOpenPurchases) {
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.catalog_open_purchases))
+                    }
+                    CartButton(ticketCount = uiState.cartTicketCount, onClick = onOpenCart)
+                },
             )
         },
     ) { innerPadding ->
@@ -96,6 +103,7 @@ private fun CatalogContentPreview() {
             ),
             onAction = {},
             onOpenCart = {},
+            onOpenPurchases = {},
         )
     }
 }

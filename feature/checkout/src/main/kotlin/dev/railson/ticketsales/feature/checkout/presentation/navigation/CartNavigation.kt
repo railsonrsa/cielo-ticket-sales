@@ -17,8 +17,12 @@ fun NavGraphBuilder.cartScreen(onBack: () -> Unit, onPurchaseApproved: (purchase
     composable<CartRoute> { CartScreen(onBack = onBack, onPurchaseApproved = onPurchaseApproved) }
 }
 
-fun NavGraphBuilder.purchaseResultScreen(onNewSale: () -> Unit) {
+fun NavGraphBuilder.purchaseResultScreen(onNewSale: () -> Unit, onOpenReceipt: (purchaseId: String) -> Unit) {
     composable<PurchaseResultRoute> { entry ->
-        PurchaseResultScreen(purchaseId = entry.toRoute<PurchaseResultRoute>().purchaseId, onNewSale = onNewSale)
+        PurchaseResultScreen(
+            purchaseId = entry.toRoute<PurchaseResultRoute>().purchaseId,
+            onNewSale = onNewSale,
+            onOpenReceipt = onOpenReceipt,
+        )
     }
 }

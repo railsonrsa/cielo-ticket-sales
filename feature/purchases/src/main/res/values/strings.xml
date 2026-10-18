@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="purchases_title">Minhas compras</string>
+    <string name="purchases_back">Voltar</string>
+    <string name="purchases_empty">Nenhuma compra ainda.</string>
+    <string name="purchases_awaiting_payment">Pagamento sem resposta</string>
+    <string name="purchases_no_tickets">Nenhum ingresso emitido</string>
+    <plurals name="purchases_tickets">
+        <item quantity="one">%d ingresso</item>
+        <item quantity="other">%d ingressos</item>
+    </plurals>
+
+    <string name="receipt_title">Comprovante</string>
+    <string name="receipt_item">%1$s × %2$d · %3$s cada</string>
+    <string name="receipt_total">Total</string>
+    <string name="receipt_auth_code">Autorização: %s</string>
+    <string name="receipt_cielo_code">Código Cielo: %s</string>
+    <string name="receipt_tickets">Ingressos</string>
+    <string name="receipt_ticket_position">Ingresso %1$d de %2$d</string>
+    <string name="receipt_ticket_qr">QR do ingresso %s</string>
+</resources>

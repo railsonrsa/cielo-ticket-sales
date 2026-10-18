@@ -13,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,15 +34,25 @@ import dev.railson.ticketsales.core.ui.format.formatDateTime
 import dev.railson.ticketsales.core.ui.theme.TicketSalesTheme
 import dev.railson.ticketsales.feature.checkout.R
 
-/** O resumo da venda aprovada. O comprovante completo, com os Tickets e o QR, fica em "Minhas compras". */
+/** O resumo da venda aprovada. O comprovante completo, com os Tickets e o QR, abre em "Ver comprovante". */
 @Composable
-internal fun PurchaseResultContent(uiState: PurchaseResultUiState, onNewSale: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PurchaseResultContent(
+    uiState: PurchaseResultUiState,
+    onNewSale: () -> Unit,
+    onOpenReceipt: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         modifier = modifier,
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
-                Button(onClick = onNewSale, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(stringResource(R.string.result_new_sale))
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onOpenReceipt, enabled = uiState.purchase != null, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.result_open_receipt))
+                    }
+                    Button(onClick = onNewSale, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.result_new_sale))
+                    }
                 }
             }
         },
@@ -96,6 +107,7 @@ private fun PurchaseResultContentPreview() {
                 ),
             ),
             onNewSale = {},
+            onOpenReceipt = {},
         )
     }
 }

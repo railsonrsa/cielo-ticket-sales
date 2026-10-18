@@ -12,13 +12,20 @@ import dev.railson.ticketsales.feature.checkout.presentation.navigation.CartRout
 import dev.railson.ticketsales.feature.checkout.presentation.navigation.PurchaseResultRoute
 import dev.railson.ticketsales.feature.checkout.presentation.navigation.cartScreen
 import dev.railson.ticketsales.feature.checkout.presentation.navigation.purchaseResultScreen
+import dev.railson.ticketsales.feature.purchases.presentation.navigation.PurchasesRoute
+import dev.railson.ticketsales.feature.purchases.presentation.navigation.ReceiptRoute
+import dev.railson.ticketsales.feature.purchases.presentation.navigation.purchasesScreen
+import dev.railson.ticketsales.feature.purchases.presentation.navigation.receiptScreen
 
 @Composable
 internal fun AppNavHost() {
     val navController = rememberNavController()
     Surface(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = CatalogRoute) {
-            catalogScreen(onOpenCart = { navController.navigate(CartRoute) })
+            catalogScreen(
+                onOpenCart = { navController.navigate(CartRoute) },
+                onOpenPurchases = { navController.navigate(PurchasesRoute) },
+            )
             cartScreen(
                 onBack = { navController.popBackStack() },
                 onPurchaseApproved = { purchaseId ->
@@ -26,7 +33,18 @@ internal fun AppNavHost() {
                     navController.navigate(PurchaseResultRoute(purchaseId)) { popUpTo(CatalogRoute) }
                 },
             )
-            purchaseResultScreen(onNewSale = { navController.popBackStack(CatalogRoute, inclusive = false) })
+            purchaseResultScreen(
+                onNewSale = { navController.popBackStack(CatalogRoute, inclusive = false) },
+                onOpenReceipt = { purchaseId ->
+                    // Voltar do comprovante leva ao catálogo, como o "Nova venda": o resultado já cumpriu o papel.
+                    navController.navigate(ReceiptRoute(purchaseId)) { popUpTo(CatalogRoute) }
+                },
+            )
+            purchasesScreen(
+                onBack = { navController.popBackStack() },
+                onOpenReceipt = { purchaseId -> navController.navigate(ReceiptRoute(purchaseId)) },
+            )
+            receiptScreen(onBack = { navController.popBackStack() })
         }
     }
 }

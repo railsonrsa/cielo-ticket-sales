@@ -32,6 +32,10 @@ internal interface PurchaseDao {
     fun observe(id: String): Flow<PurchaseWithItems?>
 
     @Transaction
+    @Query("SELECT * FROM purchase")
+    fun observeAll(): Flow<List<PurchaseWithItems>>
+
+    @Transaction
     @Query("SELECT * FROM purchase WHERE status = :status ORDER BY created_at_epoch_millis LIMIT 1")
     suspend fun findByStatus(status: String): PurchaseWithItems?
 

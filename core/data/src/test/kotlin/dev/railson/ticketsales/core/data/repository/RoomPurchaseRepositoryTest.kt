@@ -98,6 +98,19 @@ class RoomPurchaseRepositoryTest {
         assertThat(repository.findAwaitingPayment()).isNull()
     }
 
+    @Test
+    fun `observing all purchases follows every change on disk`() = runTest {
+        val (show) = seededEvents()
+        repository.create(awaitingPurchase(PurchaseItem(show.id, show.name, 1, Money(4_000))))
+        assertThat(repository.observeAll().first().single().status).isEqualTo(PurchaseStatus.AwaitingPayment)
+
+        repository.approve(PURCHASE_ID, CIELO_ORDER)
+
+        val all = repository.observeAll().first()
+        assertThat(all.single().status).isEqualTo(PurchaseStatus.Approved)
+        assertThat(all.single().items.single().eventId).isEqualTo(show.id)
+    }
+
     private suspend fun seededEvents() = database.eventDao().observeAll().first().filter { it.capacity >= 10 }
 
     private suspend fun capacityOf(eventId: String) = database.eventDao().observeAll().first().single { it.id == eventId }.capacity

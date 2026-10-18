@@ -15,6 +15,9 @@ interface PurchaseRepository {
 
     fun observe(id: String): Flow<Purchase?>
 
+    /** Todas as Purchases, em qualquer estado e em qualquer ordem: quem filtra e ordena é o use case. */
+    fun observeAll(): Flow<List<Purchase>>
+
     suspend fun findAwaitingPayment(): Purchase?
 
     fun observeAwaitingPayment(): Flow<Purchase?>

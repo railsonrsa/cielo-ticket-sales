@@ -11,10 +11,11 @@ import org.koin.core.parameter.parametersOf
 internal fun PurchaseResultScreen(
     purchaseId: String,
     onNewSale: () -> Unit,
+    onOpenReceipt: (purchaseId: String) -> Unit,
     viewModel: PurchaseResultViewModel = koinViewModel { parametersOf(purchaseId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Voltar daqui não leva ao Cart, que já foi esvaziado: é uma venda nova.
     BackHandler(onBack = onNewSale)
-    PurchaseResultContent(uiState = uiState, onNewSale = onNewSale)
+    PurchaseResultContent(uiState = uiState, onNewSale = onNewSale, onOpenReceipt = { onOpenReceipt(purchaseId) })
 }

@@ -38,5 +38,6 @@
     </plurals>
     <string name="result_auth_code">Autorização: %s</string>
     <string name="result_cielo_code">Código Cielo: %s</string>
+    <string name="result_open_receipt">Ver comprovante</string>
     <string name="result_new_sale">Nova venda</string>
 </resources>
