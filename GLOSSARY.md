@@ -24,6 +24,10 @@ _Avoid_: Order (reservado para a Order da Cielo), sale
 Uma linha da Purchase: um Event e a quantidade de ingressos dele.
 _Avoid_: Line, cart item
 
+**Reconciliation**:
+Descobrir, consultando a Cielo pelo `reference`, o desfecho de uma Purchase cujo resultado do pagamento nunca chegou ao app.
+_Avoid_: Sync, verificação (no código)
+
 **Ticket**:
 O direito de entrar num Event, emitido só a partir de uma Purchase aprovada.
 _Avoid_: Ingresso (no código), voucher

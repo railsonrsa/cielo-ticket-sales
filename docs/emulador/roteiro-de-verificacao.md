@@ -88,6 +88,7 @@ No AVD:
 | C10 | `value` como string × número | os dois são aceitos? |
 | C11 | `lio://order` pelo `orderId` do C1 | o JSON bate com o do callback? |
 | C12 | `lio://orders` (página 1, 5 por página) depois de C1–C6 | ordem (mais nova primeiro?); dá para achar o `reference`? |
+| C12b | `lio://orders` na **página 2** e na **última** (com mais de 10 Orders no emulador) | a ordem se mantém entre páginas? Cada Order traz `createdAt`? Em que formato? (confirma o atalho de parada da Reconciliation, ver [ADR 0001](../adr/0001-anti-duplicidade-e-reconciliacao.md)) |
 | C13 | Force-stop da sonda (`adb shell am force-stop`) durante o pagamento | o que a Cielo faz com o callback que ninguém recebe |
 | C14 | Tempo de ida e volta | do toque em "Pagar" até o callback, em segundos |
 
