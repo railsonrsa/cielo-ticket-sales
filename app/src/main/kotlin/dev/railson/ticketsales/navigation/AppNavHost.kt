@@ -8,13 +8,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import dev.railson.ticketsales.feature.catalog.presentation.navigation.CatalogRoute
 import dev.railson.ticketsales.feature.catalog.presentation.navigation.catalogScreen
+import dev.railson.ticketsales.feature.checkout.presentation.navigation.CartRoute
+import dev.railson.ticketsales.feature.checkout.presentation.navigation.cartScreen
 
 @Composable
 internal fun AppNavHost() {
     val navController = rememberNavController()
     Surface(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = CatalogRoute) {
-            catalogScreen()
+            catalogScreen(onOpenCart = { navController.navigate(CartRoute) })
+            cartScreen(onBack = { navController.popBackStack() })
         }
     }
 }

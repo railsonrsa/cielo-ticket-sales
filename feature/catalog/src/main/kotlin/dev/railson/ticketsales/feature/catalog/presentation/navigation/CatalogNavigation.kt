@@ -8,6 +8,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object CatalogRoute
 
-fun NavGraphBuilder.catalogScreen() {
-    composable<CatalogRoute> { CatalogScreen() }
+fun NavGraphBuilder.catalogScreen(onOpenCart: () -> Unit) {
+    composable<CatalogRoute> { CatalogScreen(onOpenCart = onOpenCart) }
 }

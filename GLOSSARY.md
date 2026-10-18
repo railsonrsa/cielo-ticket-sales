@@ -16,6 +16,14 @@ _Avoid_: Stock, inventory, lotação
 A seleção de Events e quantidades que o cliente monta antes de pagar; sobrevive a crash e ao fechamento do app, e ainda não é uma cobrança.
 _Avoid_: Basket, carrinho (no código)
 
+**Cart Item**:
+Uma linha do Cart: um Event e a quantidade de ingressos dele, sem preço; o subtotal usa o preço atual do Event.
+_Avoid_: Line, Purchase Item (esse é a linha da Purchase, com o preço congelado)
+
+**Capacity Conflict**:
+Quando um Cart Item não cabe mais na Capacity atual do Event: "Esgotado" (Capacity 0) ou "Só restam N" (quantidade acima da Capacity). Bloqueia o "Pagar" até o item ser ajustado ou removido.
+_Avoid_: Erro de estoque, overbooking
+
 **Purchase**:
 Uma tentativa de compra de um cliente, cobrada num único pagamento, que pode reunir vários Events.
 _Avoid_: Order (reservado para a Order da Cielo), sale
