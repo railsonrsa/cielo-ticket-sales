@@ -112,5 +112,6 @@ Rodados em 17/10/2026 no AVD `Cielo_API29` (Android 10, ARM64, sem GMS) com o em
 | C9 | ✅ sem FGS, `am kill` mata; a Cielo dispara o callback e o Android **recria o processo** para entregá-lo | `0` | callback não se perdeu no emulador (a doc diz que o FGS é essencial; terminal real pode diferir) |
 | C11 | ✅ `lio://order` silencioso (35 ms), devolve a Order completa | `0` | — |
 | C12 | ✅ `lio://orders` silencioso (41 ms); **mais antiga primeiro**; `totalItems`/`totalPages` | `0` | cancelados/erros/abandonados **também viram Order**, com `status: "ENTERED"` e o `reference`; há uma Order-semente `id: "1"` |
+| C12b | ✅ (18/10, no #18) ordem mantida entre as páginas, mais antiga primeiro; `createdAt` = `Oct 18, 2026 4:52:48 PM`, hora local | `0` | ⚠️ a página 1 traz 6 Orders (a semente a mais) e **a última da página 1 se repete na página 2**; uma página além da última vem com `results: []` |
 | C10, C13 | não rodados | | `value` como número funciona (todos os cenários); C13 pouco informativo |
 | C14 | ida e volta do sistema: 35 ms (consultas) a ~2,5 s (pagamento, sem contar os toques) | | |
