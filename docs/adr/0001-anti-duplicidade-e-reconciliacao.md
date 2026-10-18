@@ -13,7 +13,10 @@ No emulador, a Cielo **cobrou duas vezes o mesmo `reference`**. Ela não tem cha
 3. **Resultado**: soma autorizada == total → `Approved`; só `ENTERED` → `Failed("pagamento não concluído")`; nenhuma Order → `Failed("pagamento não iniciado")`; consulta falhou ou foi inconclusiva → continua `AwaitingPayment`. Sem estado `Unverified`.
 4. **Busca independente da ordem**: lê as páginas das duas pontas para o meio (1, N, 2, N-1…). Para quando acha o `reference` (e lê a página vizinha para pegar cobranças duplicadas), quando cada ponta já passou do `createdAt` da Purchase (com folga), quando as pontas se encontram ou quando chega a 20 páginas (inconclusivo). Só marca `Failed` com certeza.
 5. **Anomalias guardadas, não escondidas**: um `orderId` pago a mais (cobrança duplicada) ou uma soma autorizada ≠ total (`Failed("valor divergente")`) ficam gravados com o alerta "cobrança a estornar". O estorno em si fica fora do escopo.
-6. **Callback idempotente**: só transiciona a partir de `AwaitingPayment`. Exceção única: um callback autorizado atrasado **promove `Failed` → `Approved`** (o dinheiro saiu). Ele emite os Tickets e decrementa a Capacity a partir dos Purchase Items, **não mexe no Cart**, e o próximo "Pagar" pede confirmação num dialog até a pessoa aceitar (aceite gravado em disco).
+6. **Callback idempotente**: só transiciona a partir de `AwaitingPayment`. Exceção única: um callback autorizado atrasado sobre uma Purchase `Failed` (o dinheiro saiu):
+   - **há Capacity para todos os itens** → promove `Failed` → `Approved`, emite os Tickets e decrementa a Capacity a partir dos Purchase Items. **Não mexe no Cart**, e o próximo "Pagar" pede confirmação num dialog até a pessoa aceitar (o aceite fica gravado em disco);
+   - **falta Capacity em algum item** → continua `Failed("esgotado após pagamento")` com a marca "cobrança a estornar". Não emite Tickets, não mexe na Capacity e não faz aprovação parcial (tudo ou nada). Vale "quem confirma primeiro leva": quem comprou nesse meio-tempo não é afetado.
+   _Revisto em 17/10/2026 no ticket [Estratégia de testes dos cenários críticos](https://github.com/railsonrsa/cielo-ticket-sales/issues/7). A versão anterior promovia sempre e deixava a Capacity negativa._
 
 ## Alternativas descartadas
 
@@ -23,5 +26,5 @@ No emulador, a Cielo **cobrou duas vezes o mesmo `reference`**. Ela não tem cha
 
 ## Consequências
 
-- Em casos raros (aprovação atrasada), a Capacity pode ficar negativa. Aceitamos isso e registramos.
+- A Capacity nunca fica abaixo de 0, e nunca há mais Tickets do que lugares. O preço disso é que, em casos raros (aprovação atrasada com o Event esgotado), o cliente é cobrado e precisa de estorno.
 - "Minhas compras" passa a mostrar a `AwaitingPayment` no topo.
