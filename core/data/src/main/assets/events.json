@@ -1,0 +1,50 @@
+[
+  {
+    "id": "7e8e3497-5e2a-420d-9826-9bb0ebf57f9c",
+    "name": "Noite de Choro no Coreto",
+    "startsAt": "2026-11-07T20:00:00-03:00",
+    "venue": "Praça do Coreto",
+    "unitPriceCents": 4000,
+    "capacity": 150
+  },
+  {
+    "id": "cbc0b426-0031-4a39-b009-ff93914ba444",
+    "name": "A Casa das Marés",
+    "startsAt": "2026-11-13T19:30:00-03:00",
+    "venue": "Teatro Municipal",
+    "unitPriceCents": 6000,
+    "capacity": 80
+  },
+  {
+    "id": "001a340c-3539-4c09-97a9-9aa19e5cbbe6",
+    "name": "Palestra: Finanças para Pequenos Negócios",
+    "startsAt": "2026-11-19T19:00:00-03:00",
+    "venue": "Auditório da Biblioteca Central",
+    "unitPriceCents": 2500,
+    "capacity": 60
+  },
+  {
+    "id": "0633965a-ef1b-426d-b083-a7432dc65088",
+    "name": "Voz e Violão: Sessão Intimista",
+    "startsAt": "2026-11-28T21:00:00-03:00",
+    "venue": "Café do Porto",
+    "unitPriceCents": 4550,
+    "capacity": 2
+  },
+  {
+    "id": "790edc91-9293-4f69-bb07-e56650e1013d",
+    "name": "Stand-up: Rindo da Rotina",
+    "startsAt": "2026-12-05T21:00:00-03:00",
+    "venue": "Teatro Municipal",
+    "unitPriceCents": 5000,
+    "capacity": 120
+  },
+  {
+    "id": "c60114e4-77bf-426f-a444-38cb7a31e6f4",
+    "name": "Concerto de Natal da Orquestra Jovem",
+    "startsAt": "2026-12-18T20:00:00-03:00",
+    "venue": "Igreja Matriz",
+    "unitPriceCents": 3000,
+    "capacity": 200
+  }
+]

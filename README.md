@@ -37,7 +37,7 @@ Por **Deep Link `lio://`** (o SDK foi descontinuado e a Cielo exige deep link), 
 
 ## O que faria com mais tempo
 
-Estorno (`lio://payment-reversal`) · TTL do Cart · QR assinado e validação na portaria (exige backend) · Capacity entre várias maquininhas (exige backend) · migração do catálogo de Events · design visual próprio · analytics e monitoring sem GMS · criptografia em repouso (SQLCipher/Keystore) · filtro de tentativas falhas · cobertura com Kover.
+Estorno (`lio://payment-reversal`) · TTL do Cart · QR assinado e validação na portaria (exige backend) · Capacity entre várias maquininhas (exige backend) · catálogo de Events vindo de um backend/BFF, com o Room como cache, em vez do seed local no device · migração do catálogo de Events · design visual próprio · analytics e monitoring sem GMS · criptografia em repouso (SQLCipher/Keystore) · filtro de tentativas falhas · cobertura com Kover.
 
 ## Uso de IA
 
