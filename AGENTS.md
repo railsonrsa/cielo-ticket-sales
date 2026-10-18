@@ -38,5 +38,7 @@ export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home  #
 ## Fluxo de trabalho
 
 - **Uma fatia vertical por sessão e por PR** (do domínio à tela), sempre com os testes da fatia.
+- **Trunk-based com PRs revisados pelo humano.** A ordem das fatias está no [mapa de implementação](https://github.com/railsonrsa/cielo-ticket-sales/issues/11). Uma branch curta por fatia (`impl/<n>-<tema>`), um PR com `Closes #n`. Se a fatia anterior ainda não entrou na `main`, a branch nasce dela e o PR aponta para ela (cascata); depois do merge, rebase e reaponte para a `main`.
+- **Nunca faça merge na `main` nem push direto nela.** Quem mescla é o humano, a menos que ele diga explicitamente o contrário naquela hora.
 - Uma decisão nova ou que contradiga uma spec não se resolve no código: pare, aponte a contradição e atualize a spec ou o ADR junto com o humano.
 - Ao fim de uma sessão relevante, registre um diário em `docs/ai/sessions/AAAA-MM-DD-<tema>.md` seguindo [`docs/ai/README.md`](docs/ai/README.md).
