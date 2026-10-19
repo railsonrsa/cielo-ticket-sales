@@ -22,7 +22,7 @@ O contexto de cada sessão está nos [diários](sessions/).
 
 ## 17/10 (sábado)
 
-### Harness de IA ([#8](https://github.com/railsonrsa/cielo-ticket-sales/issues/8))
+### Charting do mapa de decisões ([#1](https://github.com/railsonrsa/cielo-ticket-sales/issues/1)), continuação
 
 **13:17**
 
@@ -106,7 +106,103 @@ O contexto de cada sessão está nos [diários](sessions/).
 
 > Ótimo, com a finalização e resoluções dos testes no emulador com o simulador da Cielo, mudou algo no nosso mapa ou a preferência de ordem dos tickets? Se não, primeiro me avise qual o próximo candidato para ser atacado
 
+### Estratégia contra cobrança duplicada ([#4](https://github.com/railsonrsa/cielo-ticket-sales/issues/4))
+
+**21:59** · comando
+
+> /mattpocock-skills:wayfinder vamos atacar o próximo ticket Estratégia contra cobrança
+
+**22:11**
+
+> Gostaria de entender melhor o ponto da Q8, eu entendo que o callback aparente estar retornando em ordem da mais antiga para mais nova. Pensando que comportamentos padrões de apps, a listagem deveria ser ao contrário, da meis recente a mais antiga. Elabore novamente a estratégia para esse requisito
+
+**22:21**
+
+> Q9, eu gostaria de adicionar mais uma dupla validação, um dialog de confirmação alem do sugerido, para que se ele clique em continuar para pagar ele esteja ciente da ação e esteja confirmando que deseja prosseguir
+
+### Arquitetura e modularização ([#5](https://github.com/railsonrsa/cielo-ticket-sales/issues/5))
+
+**22:26** · comando
+
+> /mattpocock-skills:wayfinder vamos atuar no ticket Arquitetura e modularização
+
+**22:39**
+
+> Q1: Eu gostaria de adicionar alguns módulos futuros dentro de core como analytics e monitoring. Esses dois pontos não foram citados ainda no mapa e também entraram em implementações futuras o mesmo vale para criptografia. Adicione esses tópicos no mapa e iremos discutir sobre eles posteriormente. A arvore me parece correta, porém eu queria ver como ela ficaria nos módulos de feature como exemplos, queria ver a estrutura dos packages. Se isso for algo que a gente vai discutir ainda pule, caso contrário me mostre um exemplo dessa estrutura. Q5: koin se nenhuma restrição de requisito permitir, do contrario podemos utilizar Hilt.
+
+**22:45**
+
+> sim eu aceito as recomendações, utilizando o hilt como já confirmou. Eu só quero discutir um pouco mais sobre a estrutura dos packages, em especial de features. Olhando aqui me parece quase o que espero, porém eu gostaria de ver uma estrutura separada ainda mais em alguns grupos, por exemplo "presentation" "domain" e "data", isso me ajuda a ser mais acertivo onde encontrar o que eu preciso como use cases, repositories, data sources, etc.
+
+**22:49**
+
+> Q1: vamos utilizar a primeira sugestão, durante o decorrer do projeto eu irei availar uma reestruturação se eu achar necessário. Q2: Seria Koin mesmo, apenas confundi por um momento os nomes.
+
+**22:51**
+
+> sim, pode fechar com o ADR 0002
+
+### Persistência e fonte dos Events ([#6](https://github.com/railsonrsa/cielo-ticket-sales/issues/6))
+
+**22:53** · comando
+
+> /mattpocock-skills:wayfinder vamos atuar no ticket Persistência e fonte dos Events
+
+### Estratégia de testes ([#7](https://github.com/railsonrsa/cielo-ticket-sales/issues/7))
+
+**23:04** · comando
+
+> /mattpocock-skills:wayfinder vamos atuar no ticket  Estratégia de testes dos cenários críticos
+
+**23:07**
+
+> Antes de responder as perguntas, vamos resolver o problema de contradição, eu preciso entender melhor o ponto pois acho que fiz uma confusão. Poderia criar um artefato ou html simulado para eu entender o problema. De forma visual seja iterativa e/ou com diagramas
+
+**23:17**
+
+> Vamos discutir melhor esse cenário por que vendo pelo simulador eu encontro um problema que não é somente o que o mobile vai salvar de capacity, mas como a operação funciona. Eu entendo que o cliente A solicitou o pagamento de 2 de 5 tickets, porém ele não receber o feedback a tem faz com que cliente B compre todos e tenha o feedback em tempo. Quando o feedback de A chega, o total de tickets é maior do que o capacity do estabelecimento. Nesse caso eu preciso discutir como o mercado trata esses cenários, por que eu acredito que o cliente B não deveria ser punido, para ele foi normal como não tivesse nada em "andamento" para reduzir o numero de tickets. Agora o cliente A sendo cobrado, isso deveria entrar como falha e ter estorno, correto? Volte para mim com essa analise e com sugestões de como seguir.
+
+**23:22**
+
+> sim, atualize o simulador com a nova regra
+
+**23:26**
+
+> Ok, verifiquei no simulador. Eu queria deixar esse artefato também disponível para verificação no projeto. Depois refaça as perguntas iniciais para eu verificar
+
+### Mensagens para cada falha ([#10](https://github.com/railsonrsa/cielo-ticket-sales/issues/10))
+
+**23:35** · comando
+
+> /mattpocock-skills:wayfinder vamos atuar no ticket Mensagens e ações do usuário para cada falha
+
+### Harness de IA ([#8](https://github.com/railsonrsa/cielo-ticket-sales/issues/8))
+
+**23:45** · comando
+
+> /mattpocock-skills:wayfinder Estrutura do harness de IA no repositório vamos para esse próximo ticket
+
 ## 18/10 (domingo)
+
+### Harness de IA ([#8](https://github.com/railsonrsa/cielo-ticket-sales/issues/8))
+
+**00:06**
+
+> antes de comitar, só me confirma que conseguimos se necessário um report de todos os prompts feitos nas sessoes de hoje e ontem
+
+**00:08**
+
+> vamos seguir então como combinamos. No final do projeto eu analiso como vamos atuar nesse ponto dos prompts. Comite então na main o que fizemos
+
+**00:10**
+
+> Por favor, coloque as spikes no github também, é importante para mim que esses pequenos projetos estejam visiveis
+
+### Mapa de implementação ([#11](https://github.com/railsonrsa/cielo-ticket-sales/issues/11))
+
+**00:18**
+
+> Finalizado o mapa e as specs, vamos começar a implementação do projeto, monte o mapa de issues de implementação e a ordem delas. Importante, a partir de agora vamos utilizar trunck-based, você tem liberdade para criar as branches e pull requests para a main ou em cascata, porém PR vão ser abertos e eu irei revisar-los manualmente e aprovarei os merges, você nunca fará merge direto pra main durante a implementação do projeto a não ser que eu fale explicitamente.
 
 ### Fundação ([#12](https://github.com/railsonrsa/cielo-ticket-sales/issues/12))
 
