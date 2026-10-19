@@ -30,6 +30,8 @@ android {
     testOptions {
         // O teste da abertura a frio sobe a MainActivity de verdade, com o manifest e o seed do :core:data.
         unitTests.isIncludeAndroidResources = true
+        // Cada Application do Robolectric chama o startKoin, e o Koin é global na JVM: uma JVM por classe de teste.
+        unitTests.all { it.forkEvery = 1 }
     }
 }
 
@@ -56,4 +58,8 @@ dependencies {
     testImplementation(testFixtures(projects.core.domain))
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+
+    // O caminho feliz de ponta a ponta, no Robolectric, com a maquininha simulada.
+    testImplementation(platform(libs.compose.bom))
+    "testDemoImplementation"(libs.compose.ui.test.junit4)
 }
