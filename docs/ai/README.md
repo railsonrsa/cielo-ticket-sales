@@ -10,6 +10,8 @@ O projeto foi planejado e implementado com o **Claude Code** num papel definido:
 | O mapa de decisões, ticket por ticket | [issue #1 — Mapa](https://github.com/railsonrsa/cielo-ticket-sales/issues/1) e suas sub-issues |
 | A spec resultante | [`docs/specs/`](../specs/), [`docs/adr/`](../adr/), [`GLOSSARY.md`](../../GLOSSARY.md) |
 | Diários de sessão | [`sessions/`](sessions/) |
+| Os prompts do humano, sessão por sessão | [`prompts.md`](prompts.md) |
+| O caminho da ideia aos PRs, com um exemplo | [README, "Da ideia ao código"](../../README.md#da-ideia-ao-código) |
 | Permissões do agente no repo | [`.claude/settings.json`](../../.claude/settings.json) |
 
 ## Método
